@@ -1,9 +1,9 @@
 # Setup
-experiment_title: test3
+experiment_title: 230112_adas_full_ivi_0
 target_environment: exynos # desktop / exynos 
 autorunner_mode: LKAS # LKAS / FULL
-max_iteration: 3 # sec
-duration: 3 # sec
+max_iteration: 1 # sec
+duration: 2 # sec
 svl_scenario_path: /home/hayeonp/git/lgsvl-demo
 
 # Commands

@@ -7,15 +7,18 @@ import yaml
 from tqdm import tqdm
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistStamped
+import slack_library
 
 is_experiment_started = threading.Event()
 is_scenario_started = threading.Event()
 is_autorunner_started = threading.Event()
 is_autorunner_killed = threading.Event()
+is_experiment_finished = threading.Event()
 barrier = threading.Barrier(3)
 
 configs = {}
 target_environment = 'null'
+slack_webhook = 'null'
 
 def svl_scenario():
     while True:
@@ -26,8 +29,11 @@ def svl_scenario():
         else:
             continue
         print('- SVL scenario is killed')
+        if is_experiment_finished.is_set(): break
         barrier.wait()
-    
+
+    print('- Turn off SVL scenario thread')
+
     return
 
 def autorunner():
@@ -41,7 +47,10 @@ def autorunner():
         else:
             continue
         print('- Autorunner is killed')
+        if is_experiment_finished.is_set(): break
         barrier.wait()
+
+    print('- Turn off Autorunner thread')
 
     return
 
@@ -71,17 +80,29 @@ def experiment_manager():
         for _ in pbar:
             pbar.set_description('Duration: ' + str(i+1)+'/'+str(configs['max_iteration']))
             time.sleep(1)
-                
+
+        if i+1 == int(configs['max_iteration']): is_experiment_finished.set()
+        
         # Terminate
         kill_svl_scenario()
         kill_autorunner()
         is_experiment_started.clear()
         is_autorunner_started.clear()
         is_scenario_started.clear()
-        save_result(i)
+        save_result(i)        
+
+        if is_experiment_finished.is_set(): break
+        
         barrier.wait()
-        barrier.reset()
+        barrier.reset()                    
     
+    message = 'Experiment is finished: '+configs['experiment_title']
+    payload = {"text": message}
+
+    slack_library.send_slack_message(payload, slack_webhook)
+
+    kill_autorunner()
+
     exit()
 
     return
@@ -145,7 +166,9 @@ def twist_cmd_cb(msg):
         is_autorunner_started.clear()
     return
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
+    slack_webhook = slack_library.get_slack_webhook()
+
     with open('configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
