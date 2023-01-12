@@ -1,17 +1,12 @@
 import os
 import subprocess
 import threading
-import multiprocessing
 import time
 import rospy
+import yaml
 from tqdm import tqdm
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistStamped
-
-MODE = 'LKAS' # LKAS, FULL
-ITERATION = 3
-TIME = 3
-
 
 is_experiment_started = threading.Event()
 is_scenario_started = threading.Event()
@@ -19,16 +14,18 @@ is_autorunner_started = threading.Event()
 is_autorunner_killed = threading.Event()
 barrier = threading.Barrier(3)
 
+configs = {}
+
 def rosbridge():
     print('- Execute rosbridge')
-    os.system('roslaunch /home/hayeonp/rosbridge_websocket.launch >> /dev/null')
+    os.system(configs['rosbridge_cmd'] + ' >> /dev/null')
     return
 
 def svl_scenario():
     while True:
         time.sleep(1)
         if is_experiment_started.is_set():
-            os.system('python3 /home/hayeonp/git/lgsvl-demo/CubetownBase.py')
+            os.system(configs['svl_scenario_cmd'])
         else:
             continue
         barrier.wait()
@@ -39,10 +36,10 @@ def autorunner():
     while True:
         time.sleep(1)
         if is_experiment_started.is_set() and is_scenario_started.is_set():
-            if MODE == 'LKAS': os.system('roslaunch rubis_autorunner cubetown_lkas_autorunner.launch')
-            elif MODE == 'FULL': os.system('roslaunch rubis_autorunner cubetown_full_autorunner.launch')
+            if configs['autorunner_mode'] == 'LKAS': os.system(configs['cubetown_lkas_autorunner_cmd'])
+            elif configs['autorunner_mode'] == 'FULL': os.system(configs['cubetown_full_autorunner_cmd'])
             else:
-                print('Invalidate MODE:',MODE)
+                print('Invalidate mode:', configs['autorunner_mode'])
         else:
             continue
         barrier.wait()
@@ -61,7 +58,7 @@ def experiment_manager():
     svl_scenario_thread.start()    
     autorunner_thread.start()
     
-    for i in range(ITERATION):  
+    for i in range(configs['max_iteration']):  
         is_rosbridge_on = False
         is_experiment_started.set()
         while True:
@@ -74,9 +71,9 @@ def experiment_manager():
         while not is_autorunner_started.is_set():
             time.sleep(1)
 
-        pbar = tqdm(range(TIME))
+        pbar = tqdm(range(configs['duration']))
         for _ in pbar:
-            pbar.set_description(str(i+1)+'/'+str(ITERATION))
+            pbar.set_description(str(i+1)+'/'+str(configs['max_iteration']))
             time.sleep(1)
                 
         # Terminate
@@ -92,7 +89,7 @@ def experiment_manager():
 
 def kill_autorunner():
     print('- Kill autorunner')
-    p = subprocess.Popen('./terminate.sh', shell=True, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    p = subprocess.Popen(configs['termination_cmd'], shell=True, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     p.wait()
     
     while True:
@@ -137,7 +134,10 @@ def twist_cmd_cb(msg):
         is_autorunner_started.clear()
     return
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
+    with open('desktop_configs.yaml') as f:
+        configs = yaml.load(f, Loader=yaml.FullLoader)
+
     manager_thread = threading.Thread(target=experiment_manager)    
     manager_thread.start()
 

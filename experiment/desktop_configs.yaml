@@ -1,0 +1,11 @@
+# Setup
+autorunner_mode: LKAS # LKAS / FULL
+max_iteration: 3 # sec
+duration: 1 # sec
+
+# Commands
+rosbridge_cmd: roslaunch /home/hayeonp/rosbridge_websocket.launch
+svl_scenario_cmd: python3 /home/hayeonp/git/lgsvl-demo/CubetownBase.py
+cubetown_lkas_autorunner_cmd: oslaunch rubis_autorunner cubetown_lkas_autorunner.launch
+cubetown_full_autorunner_cmd: roslaunch rubis_autorunner cubetown_full_autorunner.launch
+termination_cmd: terminate.sh
