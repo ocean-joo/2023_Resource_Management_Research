@@ -47,7 +47,6 @@ def autorunner():
     return
 
 def experiment_manager():
-    
     # Threads
     rosbridge_thread = threading.Thread(target=rosbridge)
     svl_scenario_thread = threading.Thread(target=svl_scenario)
@@ -82,9 +81,18 @@ def experiment_manager():
         is_experiment_started.clear()
         is_autorunner_started.clear()
         is_scenario_started.clear()
+        save_result(i)
         barrier.wait()
         barrier.reset()
     
+    return
+
+def save_result(iter):
+    # Response time
+    output_path = 'results/'+configs['experiment_title']+'/'+str(iter)
+    os.system('mkdir '+output_path)
+    os.system('cp -r '+configs['response_time_path']+ ' ' + output_path)
+
     return
 
 def kill_autorunner():
@@ -137,6 +145,11 @@ def twist_cmd_cb(msg):
 if __name__ == '__main__':    
     with open('desktop_configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
+
+    if os.path.exists('results/'+configs['experiment_title']):
+        print('Experiment result exists already')
+        exit()
+    os.mkdir('results/'+configs['experiment_title'])
 
     manager_thread = threading.Thread(target=experiment_manager)    
     manager_thread.start()
