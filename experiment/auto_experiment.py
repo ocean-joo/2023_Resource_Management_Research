@@ -15,19 +15,22 @@ is_autorunner_killed = threading.Event()
 barrier = threading.Barrier(3)
 
 configs = {}
+target_environment = 'null'
 
 def rosbridge():
     print('- Execute rosbridge')
-    os.system(configs['rosbridge_cmd'] + ' >> /dev/null')
+    os.system(configs[target_environment]['rosbridge_cmd'] + ' >> /dev/null')
     return
 
 def svl_scenario():
     while True:
         time.sleep(1)
         if is_experiment_started.is_set():
-            os.system(configs['svl_scenario_cmd'])
+            print('- Execute SVL Secnario')
+            os.system(configs[target_environment]['svl_scenario_cmd'])
         else:
             continue
+        print('- SVL scenario is killed')
         barrier.wait()
     
     return
@@ -36,12 +39,13 @@ def autorunner():
     while True:
         time.sleep(1)
         if is_experiment_started.is_set() and is_scenario_started.is_set():
-            if configs['autorunner_mode'] == 'LKAS': os.system(configs['cubetown_lkas_autorunner_cmd'])
-            elif configs['autorunner_mode'] == 'FULL': os.system(configs['cubetown_full_autorunner_cmd'])
+            if configs['autorunner_mode'] == 'LKAS': os.system(configs[target_environment]['cubetown_lkas_autorunner_cmd'])
+            elif configs['autorunner_mode'] == 'FULL': os.system(configs[target_environment]['cubetown_full_autorunner_cmd'])
             else:
                 print('Invalidate mode:', configs['autorunner_mode'])
         else:
             continue
+        print('- Autorunner is killed')
         barrier.wait()
 
     return
@@ -72,7 +76,7 @@ def experiment_manager():
 
         pbar = tqdm(range(configs['duration']))
         for _ in pbar:
-            pbar.set_description(str(i+1)+'/'+str(configs['max_iteration']))
+            pbar.set_description('Duration: ' + str(i+1)+'/'+str(configs['max_iteration']))
             time.sleep(1)
                 
         # Terminate
@@ -91,13 +95,17 @@ def save_result(iter):
     # Response time
     output_path = 'results/'+configs['experiment_title']+'/'+str(iter)
     os.system('mkdir '+output_path)
-    os.system('cp -r '+configs['response_time_path']+ ' ' + output_path)
+    if configs['target_environment'] == 'desktop':
+        os.system('cp -r '+configs['target_environment']['response_time_path']+ ' ' + output_path)
+    elif configs['target_environment'] == 'exynos':
+        os.system('scp -r root@192.168.0.8:'+configs[target_environment]['response_time_path']+ ' ' + output_path)
+    else:
+        print('[Error] Invalid target environment:',configs['target_envirnment'])
 
     return
 
 def kill_autorunner():
-    print('- Kill autorunner')
-    p = subprocess.Popen(configs['termination_cmd'], shell=True, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    p = subprocess.Popen(configs[target_environment]['termination_cmd'], shell=True, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     p.wait()
     
     while True:
@@ -112,7 +120,7 @@ def kill_svl_scenario():
     for line in output:
         if configs['svl_scenario_path'] + '/CubetownBase.py' in line:
             pid = line.split()[0]
-            os.system('kill -2 '+pid)
+            os.system('kill -9 '+pid)
 
     return
 
@@ -143,13 +151,18 @@ def twist_cmd_cb(msg):
     return
 
 if __name__ == '__main__':    
-    with open('desktop_configs.yaml') as f:
+    with open('configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
     if os.path.exists('results/'+configs['experiment_title']):
-        print('Experiment result exists already')
+        print('[Error] Experiment result exists already')
         exit()
     os.mkdir('results/'+configs['experiment_title'])
+
+    target_environment = configs['target_environment']
+    if target_environment not in ['desktop', 'exynos']:
+        print('[Error] Invalid target environment')
+        exit()
 
     manager_thread = threading.Thread(target=experiment_manager)    
     manager_thread.start()

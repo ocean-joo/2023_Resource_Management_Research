@@ -1,1 +1,1 @@
-# 2023_Rsource_Management_Research
+# 2023_Resource_Management_Research
