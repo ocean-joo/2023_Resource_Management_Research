@@ -17,11 +17,6 @@ barrier = threading.Barrier(3)
 configs = {}
 target_environment = 'null'
 
-def rosbridge():
-    print('- Execute rosbridge')
-    os.system(configs[target_environment]['rosbridge_cmd'] + ' >> /dev/null')
-    return
-
 def svl_scenario():
     while True:
         time.sleep(1)
@@ -52,12 +47,10 @@ def autorunner():
 
 def experiment_manager():
     # Threads
-    rosbridge_thread = threading.Thread(target=rosbridge)
     svl_scenario_thread = threading.Thread(target=svl_scenario)
     autorunner_thread = threading.Thread(target=autorunner)
 
     # Start rosbridge
-    rosbridge_thread.start()
     svl_scenario_thread.start()    
     autorunner_thread.start()
     
@@ -89,6 +82,8 @@ def experiment_manager():
         barrier.wait()
         barrier.reset()
     
+    exit()
+
     return
 
 def save_result(iter):
@@ -111,7 +106,7 @@ def kill_autorunner():
     while True:
         time.sleep(1)
         _output = str(os.popen('rosnode list').read())
-        if 'twist_gate' not in _output: break
+        if 'ndt_matching' not in _output: break
     return
 
 def kill_svl_scenario():
