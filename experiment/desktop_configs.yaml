@@ -9,3 +9,6 @@ svl_scenario_cmd: python3 /home/hayeonp/git/lgsvl-demo/CubetownBase.py
 cubetown_lkas_autorunner_cmd: oslaunch rubis_autorunner cubetown_lkas_autorunner.launch
 cubetown_full_autorunner_cmd: roslaunch rubis_autorunner cubetown_full_autorunner.launch
 termination_cmd: terminate.sh
+
+# Paths
+svl_scenario_path: /home/hayeonp/git/lgsvl-demo

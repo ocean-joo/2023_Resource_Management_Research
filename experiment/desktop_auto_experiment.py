@@ -102,7 +102,7 @@ def kill_svl_scenario():
     output = str(os.popen('ps ax | grep CubetownBase.py').read())
     output = output.split('\n')
     for line in output:
-        if '/home/hayeonp/git/lgsvl-demo/CubetownBase.py' in line:
+        if configs['svl_scenario_path'] + '/CubetownBase.py' in line:
             pid = line.split()[0]
             os.system('kill -2 '+pid)
 
