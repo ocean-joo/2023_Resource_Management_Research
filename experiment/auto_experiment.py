@@ -108,7 +108,7 @@ def experiment_manager(main_thread_pid):
         # Initialize SVL scenario
         svl_scenario.init()
         while not is_autorunner_started.is_set():
-            svl_scenario.run(timeout=5, is_init=True)
+            svl_scenario.run(timeout=1, is_init=True)
         
         # Start Experiment
         start_writing_position_info()
@@ -123,15 +123,14 @@ def experiment_manager(main_thread_pid):
         is_autorunner_started.clear()
         is_scenario_started.clear()
         save_result(i, experiment_info)       
-
         if not is_experiment_running.is_set():
             message = 'Experiment is finished: '+configs['experiment_title']
             payload = {"text": message}
             slack_library.send_slack_message(payload, slack_webhook)
             break
-        
         barrier.wait()
-        barrier.reset()                    
+        barrier.reset()
+        time.sleep(3)                
 
     return os.kill(main_thread_pid, signal.SIGQUIT)
 
