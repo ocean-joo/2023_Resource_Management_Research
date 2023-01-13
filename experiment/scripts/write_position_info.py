@@ -56,8 +56,9 @@ def find_closest_point(map_wp_list, wp, yaw_deg):
     
     return min_wp, min_distance
 
-def write_center_offset(output_file):
-    if output_file.split('.')[-1] != 'csv':
+def write_position_info():
+    center_offset_file = 'center_offset.csv'
+    if center_offset_file.split('.')[-1] != 'csv':
         print('Output file should be csv file!')
         exit(1)
 
@@ -73,11 +74,19 @@ def write_center_offset(output_file):
     for wp in lane_msg.lanes[0].waypoints:
         map_wp_list.append([wp.pose.pose.position.x, wp.pose.pose.position.y])
 
+    center_line_file = 'center_line.csv'
+    with open(center_line_file, "w") as f:
+        center_line_wr = csv.writer(f)
+        center_line_wr.writerow(['center_x', 'center_y'])
+        for p in map_wp_list:
+            center_line_wr.writerow([float(p[0]), float(p[1])])
+    f.close()
+
     # Wait until car starts
     rospy.wait_for_message('/vehicle_cmd', VehicleCmd, timeout=None)
-    with open(output_file, "w") as f:
-        wr = csv.writer(f)
-        wr.writerow(['ts', 'state', 'center_offset', 'res_t', 'instance'])
+    with open(center_offset_file, "w") as f:
+        center_offset_wr = csv.writer(f)
+        center_offset_wr.writerow(['ts', 'state', 'center_offset', 'res_t', 'instance', 'x', 'y'])
         prev_dis = 0
         while not rospy.is_shutdown():
             gnss_msg = rospy.wait_for_message('/gnss_pose', PoseStamped, timeout=None)
@@ -108,7 +117,8 @@ def write_center_offset(output_file):
             else:
                 state_text = 'Normal'
 
-            wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance])
+            center_offset_wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance, pose_x, pose_y])    
+    f.close()
 
 if __name__ == '__main__':
-    write_center_offset('center_offset.csv')
+    write_position_info()

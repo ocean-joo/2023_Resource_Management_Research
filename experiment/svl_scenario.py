@@ -92,8 +92,8 @@ class svl_scenario(object):
         self.create_ego()
         self.create_npc()
 
-    def run(self, timeout, label='None'):
-        if timeout == 1: self.sim.run(1)
+    def run(self, timeout, is_init=False, label='None'):
+        if is_init: self.sim.run(timeout)
         else:
             pbar = tqdm(range(timeout))
             for _ in pbar:

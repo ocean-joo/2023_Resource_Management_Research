@@ -1,9 +1,9 @@
 # Setup
 experiment_title: test
 target_environment: desktop # desktop / exynos 
-autorunner_mode: LKAS # LKAS / FULL
-max_iteration: 1 # sec
-duration: 10 # sec
+autorunner_mode: FULL # LKAS / FULL
+max_iteration: 2 # sec
+duration: 35 # sec
 svl_cfg_path: /home/hayeonp/git/2023_Resource_Management_Research/experiment/yaml/svl_scenario.yaml
 
 # Commands

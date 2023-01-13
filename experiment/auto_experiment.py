@@ -6,9 +6,11 @@ import rospy
 import yaml
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistStamped
+from autoware_msgs.msg import NDTStat
 import slack_library
 import svl_scenario as svl
 import signal
+
 
 is_experiment_running = threading.Event()
 is_scenario_started = threading.Event()
@@ -51,7 +53,10 @@ def save_result(iter, experiment_info):
     else:
         print('[Error] Invalid target environment:',configs['target_envirnment'])
 
-    # center offset
+    # Center line
+    os.system('mv ./center_line.csv ' + output_path)
+    
+    # Center offset
     os.system('mv ./center_offset.csv ' + output_path)
     
     # Experiment info
@@ -103,18 +108,17 @@ def experiment_manager(main_thread_pid):
         # Initialize SVL scenario
         svl_scenario.init()
         while not is_autorunner_started.is_set():
-            svl_scenario.run(timeout=1)
+            svl_scenario.run(timeout=5, is_init=True)
         
         # Start Experiment
-        # start_center_offset_calculation()
+        start_writing_position_info()
         is_collapsed, _ = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
-        # stop_center_offset_calculation()
+        stop_writing_position_info()
         experiment_info['is_collaped'] = is_collapsed
 
         if i+1 == int(configs['max_iteration']): is_experiment_running.clear()
 
         # Terminate
-        print(is_collapsed)
         kill_autorunner()
         is_autorunner_started.clear()
         is_scenario_started.clear()
@@ -131,16 +135,15 @@ def experiment_manager(main_thread_pid):
 
     return os.kill(main_thread_pid, signal.SIGQUIT)
 
-def start_center_offset_calculation():
-    subprocess.Popen('python3 scripts/write_center_offset.py', shell=True, executable='/bin/bash')
-    time.sleep(2)
+def start_writing_position_info():
+    subprocess.Popen('python3 scripts/write_position_info.py', shell=True, executable='/bin/bash')
     return
 
-def stop_center_offset_calculation():
+def stop_writing_position_info():
     _output = str(os.popen('ps au | grep center_offset').read())
     _output = _output.split('\n')
     for line in _output:    
-        if not 'write_center_offset.py' in line: continue
+        if not 'write_position_info.py' in line: continue
         pid = -1
         for v in line.split(' '):
             try: pid = int(v)

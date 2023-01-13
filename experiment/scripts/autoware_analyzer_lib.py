@@ -5,6 +5,7 @@ import math
 import os
 import signal
 import subprocess
+import matplotlib.pyplot as plt
 
 def save_dict(data, path):
     with open(path, 'w') as f:
@@ -32,7 +33,7 @@ def read_topics_from_bag(rosbag_path, topic_name):
         output.append(msg)
     return output
 
-def get_E2E_response_time(first_node_path, last_node_path, front_filter_ratio=0.20, end_filter_ratio=0.98):
+def get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance):
     instance_info = {}
     start_instance = -1
     E2E_response_time = {}
@@ -65,15 +66,24 @@ def get_E2E_response_time(first_node_path, last_node_path, front_filter_ratio=0.
         E2E_response_time[instance_id] = float(response_time * 1000) # unit: ms
 
     keys = list(E2E_response_time.keys())
-    keys = keys[int(len(keys) * front_filter_ratio):int(len(keys) * end_filter_ratio)]
 
+    does_start_instance_found = False
+    for key in keys:
+        if key > start_instance and not does_start_instance_found:
+            start_instance = start_instance
+            does_start_instance_found = True
+        if key > end_instance: break
+    
     remove_target = []
     for k in E2E_response_time:
         if k not in keys: remove_target.append(k)
     
     for k in remove_target: E2E_response_time.pop(k, None)
 
-    return E2E_response_time
+    avg_E2E_response_time = get_dict_avg(E2E_response_time)
+    max_E2E_response_time = get_dict_max(E2E_response_time)
+
+    return E2E_response_time, max_E2E_response_time, avg_E2E_response_time
 
 def start_rosbag_record(topic_names):   
     topic_str = '' 
@@ -82,6 +92,44 @@ def start_rosbag_record(topic_names):
 
     subprocess.Popen('source /opt/ros/melodic/setup.bash && rosbag record -O output' + topic_str, shell=True, executable='/bin/bash')
     return
+
+def get_center_offset(center_offset_path):
+    center_offset = {}
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: continue
+            instance = float(line[4])
+            center_offset[instance] = abs(float(line[2]))
+
+    max_center_offset = get_dict_max(center_offset)
+    avg_center_offset = get_dict_avg(center_offset)
+
+    return center_offset, max_center_offset, avg_center_offset
+
+def get_waypoints(center_offset_path):
+    waypoints = []
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: continue
+            pose_x = float(line[5])
+            pose_y = float(line[6])
+            waypoints.append([pose_x,pose_y])
+    
+    return waypoints
+
+def get_center_line(center_line_path):
+    center_line = []
+    with open(center_line_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: continue
+            pose_x = float(line[0])
+            pose_y = float(line[1])
+            center_line.append([pose_x,pose_y])
+    
+    return center_line
 
 def stop_rosbag_record():
     _output = str(os.popen('ps au | grep rosbag').read())
@@ -95,3 +143,7 @@ def stop_rosbag_record():
             break
 
         if pid != -1: os.kill(pid, signal.SIGINT)
+
+def mouse_event(event):
+    print('x: {} and y: {}'.format(event.xdata, event.ydata))
+

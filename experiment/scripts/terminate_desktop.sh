@@ -30,3 +30,5 @@ rosnode kill /world_to_map
 rosnode kill /yolo3_rects
 rosnode kill /vision_darknet_detect
 rosnode kill /ndt_matching
+sleep 1
+rosnode kill /driving_progress_logger
