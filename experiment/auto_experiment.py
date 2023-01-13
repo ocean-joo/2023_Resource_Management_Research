@@ -40,51 +40,6 @@ def autorunner():
 
     return
 
-def experiment_manager(main_thread_pid):
-    svl_scenario = svl.svl_scenario(configs['svl_cfg_path'])
-
-    # Threads
-    autorunner_thread = threading.Thread(target=autorunner)
-    autorunner_thread.start()
-    
-    # Check rosbridge is started
-    while True:
-        _output = str(os.popen('rosnode list').read())
-        if 'rosbridge_websocket' in _output: break
-
-    for i in range(configs['max_iteration']):
-        experiment_info = {}
-        is_experiment_running.set()
-
-        # Initialize SVL scenario
-        svl_scenario.init()
-        while not is_autorunner_started.is_set():
-            svl_scenario.run(timeout=1)
-        
-        # Start profiling
-        is_collapsed, _ = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
-        experiment_info['is_collaped'] = is_collapsed
-
-        if i+1 == int(configs['max_iteration']): is_experiment_running.clear()
-
-        # Terminate
-        print(is_collapsed)
-        kill_autorunner()
-        is_autorunner_started.clear()
-        is_scenario_started.clear()
-        save_result(i, experiment_info)       
-
-        if not is_experiment_running.is_set():
-            message = 'Experiment is finished: '+configs['experiment_title']
-            payload = {"text": message}
-            slack_library.send_slack_message(payload, slack_webhook)
-            break
-        
-        barrier.wait()
-        barrier.reset()                    
-
-    return os.kill(main_thread_pid, signal.SIGQUIT)
-
 def save_result(iter, experiment_info):
     # Response time
     output_path = 'results/'+configs['experiment_title']+'/'+str(iter)
@@ -96,6 +51,10 @@ def save_result(iter, experiment_info):
     else:
         print('[Error] Invalid target environment:',configs['target_envirnment'])
 
+    # rosbag
+    os.system('mv ./output.bag '+output_path)
+    
+    # Experiment info
     experiment_info_path = output_path + '/experiemnt_info.yaml'
     with open(experiment_info_path, 'w') as f: yaml.dump(experiment_info, f, default_flow_style=False)
 
@@ -124,6 +83,75 @@ def twist_cmd_cb(msg):
     else:
         is_autorunner_started.clear()
     return
+
+def start_rosbag_record():
+    subprocess.Popen('source /opt/ros/melodic/setup.bash && rosbag record -O output /current_pose', shell=True, executable='/bin/bash')
+    return
+
+def stop_rosbag_record():
+    _output = str(os.popen('ps au | grep rosbag').read())
+    _output = _output.split('\n')
+    for line in _output:    
+        # if not '/bin/sh -c rosbag record' in line \
+        #     and not '/opt/ros/melodic/bin/rosbag' in line \
+        #     and not '/lib/rosbag/record': continue
+
+        if not '/opt/ros/melodic/bin/rosbag' in line: continue
+        pid = -1
+        for v in line.split(' '):
+            try: pid = int(v)
+            except: continue        
+            break
+
+        if pid != -1: os.kill(pid, signal.SIGINT)
+
+def experiment_manager(main_thread_pid):
+    svl_scenario = svl.svl_scenario(configs['svl_cfg_path'])
+
+    # Threads
+    autorunner_thread = threading.Thread(target=autorunner)
+    autorunner_thread.start()
+    
+    # Check rosbridge is started
+    while True:
+        _output = str(os.popen('rosnode list').read())
+        if 'rosbridge_websocket' in _output: break
+
+    for i in range(configs['max_iteration']):
+        experiment_info = {}
+        is_experiment_running.set()
+
+        # Initialize SVL scenario
+        svl_scenario.init()
+        while not is_autorunner_started.is_set():
+            svl_scenario.run(timeout=1)
+        
+        # Start profiling
+        start_rosbag_record()
+        is_collapsed, _ = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
+        experiment_info['is_collaped'] = is_collapsed
+        stop_rosbag_record()
+
+        if i+1 == int(configs['max_iteration']): is_experiment_running.clear()
+
+        # Terminate
+        print(is_collapsed)
+        kill_autorunner()
+        is_autorunner_started.clear()
+        is_scenario_started.clear()
+        save_result(i, experiment_info)       
+
+        if not is_experiment_running.is_set():
+            message = 'Experiment is finished: '+configs['experiment_title']
+            payload = {"text": message}
+            slack_library.send_slack_message(payload, slack_webhook)
+            break
+        
+        barrier.wait()
+        barrier.reset()                    
+
+    return os.kill(main_thread_pid, signal.SIGQUIT)
+
 
 if __name__ == '__main__':
     main_thread_pid = os.getpid()

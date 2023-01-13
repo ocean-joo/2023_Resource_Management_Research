@@ -66,6 +66,8 @@ class svl_scenario(object):
         return
 
     def create_npc(self):
+        if not 'npc' in self.cfg: return
+
         for i in range(len(self.cfg['npc'])):
             npc_state = lgsvl.AgentState()
 
