@@ -8,6 +8,7 @@ from tqdm import tqdm
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistStamped
 import slack_library
+import svl_scenario as svl
 
 is_experiment_started = threading.Event()
 is_scenario_started = threading.Event()
@@ -82,7 +83,7 @@ def experiment_manager():
             time.sleep(1)
 
         if i+1 == int(configs['max_iteration']): is_experiment_finished.set()
-        
+
         # Terminate
         kill_svl_scenario()
         kill_autorunner()
@@ -91,15 +92,16 @@ def experiment_manager():
         is_scenario_started.clear()
         save_result(i)        
 
-        if is_experiment_finished.is_set(): break
+        if is_experiment_finished.is_set():
+            message = 'Experiment is finished: '+configs['experiment_title']
+            payload = {"text": message}
+            slack_library.send_slack_message(payload, slack_webhook)
+            break
         
         barrier.wait()
         barrier.reset()                    
     
-    message = 'Experiment is finished: '+configs['experiment_title']
-    payload = {"text": message}
-
-    slack_library.send_slack_message(payload, slack_webhook)
+    
 
     kill_autorunner()
 
@@ -169,7 +171,7 @@ def twist_cmd_cb(msg):
 if __name__ == '__main__':
     slack_webhook = slack_library.get_slack_webhook()
 
-    with open('configs.yaml') as f:
+    with open('yaml/configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
     if os.path.exists('results/'+configs['experiment_title']):

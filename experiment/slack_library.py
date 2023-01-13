@@ -3,7 +3,7 @@ import json
 import yaml
 
 def get_slack_webhook():
-    with open('slack_webhook.yaml') as f:
+    with open('yaml/slack_webhook.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
         slack_webhook = configs['webhook']
     return slack_webhook
