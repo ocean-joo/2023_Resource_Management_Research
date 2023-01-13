@@ -1,15 +1,14 @@
 import lgsvl
 from lgsvl.geometry import Transform, Vector
-import tqdm
+from tqdm import tqdm
 import os
 import random
 import yaml
 
 class svl_scenario(object):
-    def __init__(self):
-        # load cfg file
-        cfg_file = __file__.replace('.py', '.yaml')
-        with open(cfg_file, 'r') as f:
+    def __init__(self, cfg_path):
+        # load cfg file        
+        with open(cfg_path, 'r') as f:
             self.cfg = yaml.load(f, Loader=yaml.FullLoader)
 
         self.sim = lgsvl.Simulator(
@@ -21,6 +20,7 @@ class svl_scenario(object):
         self.collison_info = [] 
         self.u_forward = Vector(0,0)
         self.u_right = Vector(0,0)
+        self.start_flag = False
 
         self.reset()
 
@@ -85,16 +85,18 @@ class svl_scenario(object):
 
         return
 
-    def run(self, timeout):
+    def init(self):
         self.sim.reset()
         self.create_ego()
         self.create_npc()
-        for _ in tqdm.tqdm(range(timeout)):
-            self.sim.run(1)
-            if self.is_collapsed: break
+
+    def run(self, timeout, label='None'):
+        if timeout == 1: self.sim.run(1)
+        else:
+            pbar = tqdm(range(timeout))
+            for _ in pbar:
+                pbar.set_description('Duration: ' + label)
+                self.sim.run(1)
+                if self.is_collapsed: break
+                
         return self.is_collapsed, self.collaped_position
-
-# if __name__ == '__main__':
-#     scenario = svl_scenario()
-#     is_collapsed, collapsed_position = scenario.run(timeout=1)
-
