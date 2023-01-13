@@ -51,8 +51,8 @@ def save_result(iter, experiment_info):
     else:
         print('[Error] Invalid target environment:',configs['target_envirnment'])
 
-    # rosbag
-    os.system('mv ./output.bag '+output_path)
+    # center offset
+    os.system('mv ./center_offset.csv ' + output_path)
     
     # Experiment info
     experiment_info_path = output_path + '/experiemnt_info.yaml'
@@ -84,27 +84,6 @@ def twist_cmd_cb(msg):
         is_autorunner_started.clear()
     return
 
-def start_rosbag_record():
-    subprocess.Popen('source /opt/ros/melodic/setup.bash && rosbag record -O output /current_pose', shell=True, executable='/bin/bash')
-    return
-
-def stop_rosbag_record():
-    _output = str(os.popen('ps au | grep rosbag').read())
-    _output = _output.split('\n')
-    for line in _output:    
-        # if not '/bin/sh -c rosbag record' in line \
-        #     and not '/opt/ros/melodic/bin/rosbag' in line \
-        #     and not '/lib/rosbag/record': continue
-
-        if not '/opt/ros/melodic/bin/rosbag' in line: continue
-        pid = -1
-        for v in line.split(' '):
-            try: pid = int(v)
-            except: continue        
-            break
-
-        if pid != -1: os.kill(pid, signal.SIGINT)
-
 def experiment_manager(main_thread_pid):
     svl_scenario = svl.svl_scenario(configs['svl_cfg_path'])
 
@@ -126,11 +105,11 @@ def experiment_manager(main_thread_pid):
         while not is_autorunner_started.is_set():
             svl_scenario.run(timeout=1)
         
-        # Start profiling
-        start_rosbag_record()
+        # Start Experiment
+        # start_center_offset_calculation()
         is_collapsed, _ = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
+        # stop_center_offset_calculation()
         experiment_info['is_collaped'] = is_collapsed
-        stop_rosbag_record()
 
         if i+1 == int(configs['max_iteration']): is_experiment_running.clear()
 
@@ -152,6 +131,24 @@ def experiment_manager(main_thread_pid):
 
     return os.kill(main_thread_pid, signal.SIGQUIT)
 
+def start_center_offset_calculation():
+    subprocess.Popen('python3 scripts/write_center_offset.py', shell=True, executable='/bin/bash')
+    time.sleep(2)
+    return
+
+def stop_center_offset_calculation():
+    _output = str(os.popen('ps au | grep center_offset').read())
+    _output = _output.split('\n')
+    for line in _output:    
+        if not 'write_center_offset.py' in line: continue
+        pid = -1
+        for v in line.split(' '):
+            try: pid = int(v)
+            except: continue
+            break
+
+        if pid != -1: os.kill(pid, signal.SIGINT)
+    return
 
 if __name__ == '__main__':
     main_thread_pid = os.getpid()

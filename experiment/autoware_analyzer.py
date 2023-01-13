@@ -1,7 +1,7 @@
 import yaml
 import matplotlib.pyplot as plt
 import os
-import autoware_anlyzer_lib as aa
+import scripts.autoware_analyzer_lib as aa
 
 configs = {}
 
@@ -44,8 +44,12 @@ if __name__ == '__main__':
     with open('yaml/autoware_analyzer.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     
-    for base_path in configs['result_dirs']:
+    for base_path in configs['experiment_title']:
+        base_path = 'results/' + base_path
         for idx in range(10):
-            path = base_path + '/' + str(idx) + '/response_time'
-            profile_response_time(path)
+            # response_time_path = base_path + '/' + str(idx) + '/response_time'
+            # profile_response_time(response_time_path)
+            rosbag_path = base_path + '/' + str(idx) + '/output.bag'
+            aa.get_center_offset(rosbag_path)
+            exit()
     

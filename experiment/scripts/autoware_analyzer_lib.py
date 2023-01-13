@@ -1,5 +1,10 @@
 import csv
 import yaml
+import rosbag
+import math
+import os
+import signal
+import subprocess
 
 def save_dict(data, path):
     with open(path, 'w') as f:
@@ -18,6 +23,14 @@ def get_dict_max(data):
         v = float(data[key])
         if v > max: max = v
     return max
+
+def read_topics_from_bag(rosbag_path, topic_name):
+    print(rosbag_path)
+    bag = rosbag.Bag(rosbag_path)
+    output = []
+    for _, msg, _ in bag.read_messages():        
+        output.append(msg)
+    return output
 
 def get_E2E_response_time(first_node_path, last_node_path, front_filter_ratio=0.20, end_filter_ratio=0.98):
     instance_info = {}
@@ -61,3 +74,24 @@ def get_E2E_response_time(first_node_path, last_node_path, front_filter_ratio=0.
     for k in remove_target: E2E_response_time.pop(k, None)
 
     return E2E_response_time
+
+def start_rosbag_record(topic_names):   
+    topic_str = '' 
+    for topic in topic_names:
+        topic_str = topic_str + ' ' + topic
+
+    subprocess.Popen('source /opt/ros/melodic/setup.bash && rosbag record -O output' + topic_str, shell=True, executable='/bin/bash')
+    return
+
+def stop_rosbag_record():
+    _output = str(os.popen('ps au | grep rosbag').read())
+    _output = _output.split('\n')
+    for line in _output:    
+        if not '/opt/ros/melodic/bin/rosbag' in line: continue
+        pid = -1
+        for v in line.split(' '):
+            try: pid = int(v)
+            except: continue        
+            break
+
+        if pid != -1: os.kill(pid, signal.SIGINT)
