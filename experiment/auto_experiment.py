@@ -60,7 +60,7 @@ def save_result(iter, experiment_info):
     os.system('mv ./center_offset.csv ' + output_path)
     
     # Experiment info
-    experiment_info_path = output_path + '/experiemnt_info.yaml'
+    experiment_info_path = output_path + '/experiment_info.yaml'
     with open(experiment_info_path, 'w') as f: yaml.dump(experiment_info, f, default_flow_style=False)
 
     return

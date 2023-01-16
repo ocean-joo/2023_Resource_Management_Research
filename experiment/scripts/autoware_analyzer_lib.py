@@ -131,6 +131,12 @@ def get_center_line(center_line_path):
     
     return center_line
 
+def get_experiment_info(experiment_info_path):
+    experiment_info = {}
+    with open(experiment_info_path, 'r') as f:
+        experiment_info = yaml.safe_load(f)
+    return experiment_info
+
 def stop_rosbag_record():
     _output = str(os.popen('ps au | grep rosbag').read())
     _output = _output.split('\n')
@@ -146,4 +152,7 @@ def stop_rosbag_record():
 
 def mouse_event(event):
     print('x: {} and y: {}'.format(event.xdata, event.ydata))
+    return
 
+def convert_boolean_list_to_int_list(list_of_booleans):    
+    return [int(item) for item in list_of_booleans]
