@@ -103,6 +103,7 @@ def experiment_manager(main_thread_pid):
 
     for i in range(configs['max_iteration']):
         experiment_info = {}
+        is_collapsed = False
         is_experiment_running.set()
 
         # Initialize SVL scenario
@@ -112,9 +113,10 @@ def experiment_manager(main_thread_pid):
         
         # Start Experiment
         start_writing_position_info()
-        is_collapsed, _ = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
+        is_collapsed, collapsed_position = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
         stop_writing_position_info()
         experiment_info['is_collaped'] = is_collapsed
+        experiment_info['collapsed_position'] = collapsed_position
 
         if i+1 == int(configs['max_iteration']): is_experiment_running.clear()
 

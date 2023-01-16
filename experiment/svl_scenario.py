@@ -4,6 +4,7 @@ from tqdm import tqdm
 import os
 import random
 import yaml
+import copy
 
 class svl_scenario(object):
     def __init__(self, cfg_path):
@@ -57,7 +58,7 @@ class svl_scenario(object):
         ego.connect_bridge(self.cfg['lgsvl_bridge']['address'], self.cfg['lgsvl_bridge']['port'])
 
         def ego_collision(agent1, agent2, contact):
-            self.collaped_position = [ego_state.position.x, ego_state.position.z]
+            self.collaped_position = copy.deepcopy([ego_state.position.x, ego_state.position.z])
             self.is_collapsed = True
             return
         
@@ -93,6 +94,7 @@ class svl_scenario(object):
         self.create_npc()
 
     def run(self, timeout, is_init=False, label='None'):
+        self.is_collapsed = False
         if is_init: self.sim.run(timeout)
         else:
             pbar = tqdm(range(timeout))
@@ -100,5 +102,5 @@ class svl_scenario(object):
                 pbar.set_description('Duration: ' + label)
                 self.sim.run(1)
                 if self.is_collapsed: break
-                
+             
         return self.is_collapsed, self.collaped_position

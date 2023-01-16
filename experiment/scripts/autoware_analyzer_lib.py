@@ -150,6 +150,11 @@ def stop_rosbag_record():
 
         if pid != -1: os.kill(pid, signal.SIGINT)
 
+def get_number_of_files(path):
+    output = str(os.popen('ls ' + path).read())
+    output = output.split('\n')
+    return len(output) - 1
+
 def mouse_event(event):
     print('x: {} and y: {}'.format(event.xdata, event.ydata))
     return
