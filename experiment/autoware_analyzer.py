@@ -58,7 +58,7 @@ def profile_waypoints_for_experiment(base_path, n):
         center_line_x.append(float(center_line_point[0]))
         center_line_y.append(float(center_line_point[1]))  
 
-    plt.plot(center_line_x, center_line_y, label='Center line')
+    plt.plot(center_line_x, center_line_y, 'k', label='Center line')
 
     # Waypoints
     for idx in range(n):
@@ -75,19 +75,20 @@ def profile_waypoints_for_experiment(base_path, n):
             waypoints_x.append(float(waypoint[0]))
             waypoints_y.append(float(waypoint[1]))        
 
-        plt.plot(waypoints_x, waypoints_y, linewidth=1.0, label=label)
+        if idx == 0: plt.plot(waypoints_x, waypoints_y, 'b', linewidth=1.0, label='Trajectories')
+        else: plt.plot(waypoints_x, waypoints_y, 'b', linewidth=1.0)
 
     # Objects
     npc1_x = [6, 6, -1, -1, 6]
     npc1_y = [51, 48, 48, 51, 51]
     npc2_x = [6, 6, -1, -1, 6]
     npc2_y = [55, 52, 52, 55, 55]
-    plt.plot(npc1_x, npc1_y, 'k', label='Obstacle')
+    plt.plot(npc1_x, npc1_y, 'k')
     plt.plot(npc2_x, npc2_y, 'k')
 
 
     # Plot
-    plot_path = 'analyzation/' + exp_title + '_' +'_waypoints.png'
+    plot_path = 'analyzation/' + exp_title + '/' + exp_title +'_waypoints.png'
     plt.xlim(-70, 40)
     plt.ylim(20,75)
     plt.xlabel('x (m)')
