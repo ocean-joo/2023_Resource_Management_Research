@@ -33,7 +33,7 @@ def read_topics_from_bag(rosbag_path, topic_name):
         output.append(msg)
     return output
 
-def get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance):
+def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E2E_end_instance):
     instance_info = {}
     start_instance = -1
     E2E_response_time = {}
@@ -46,7 +46,7 @@ def get_E2E_response_time(first_node_path, last_node_path, start_instance, end_i
 
             end_time = float(row[3])
             instance_id = int(row[4])
-            if i == 1: start_instance = instance_id
+            if i == 1: start_instance = instance_id            
             instance_info[instance_id] = {'start_time': -1.0, 'end_time': end_time}
 
     with open (first_node_path) as f:
@@ -67,16 +67,17 @@ def get_E2E_response_time(first_node_path, last_node_path, start_instance, end_i
 
     keys = list(E2E_response_time.keys())
 
-    does_start_instance_found = False
+    does_start_instance_found = False    
     for key in keys:
-        if key > start_instance and not does_start_instance_found:
-            start_instance = start_instance
+        if key > E2E_start_instance and not does_start_instance_found:
+            E2E_start_instance = key
             does_start_instance_found = True
-        if key > end_instance: break
-    
+        if key > E2E_end_instance:
+            E2E_end_instance = key
+            break
     remove_target = []
     for k in E2E_response_time:
-        if k not in keys: remove_target.append(k)
+        if k < E2E_start_instance or k > E2E_end_instance or k not in keys: remove_target.append(k)        
     
     for k in remove_target: E2E_response_time.pop(k, None)
 

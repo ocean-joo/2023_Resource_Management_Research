@@ -1,7 +1,7 @@
 import math
 from autoware_msgs.msg import LaneArray, NDTStat, VehicleCmd
 from geometry_msgs.msg import PoseStamped
-from rubis_msgs.msg import PoseStamped as RubisPoseStamped
+from rubis_msgs.msg import TwistStamped
 from visualization_msgs.msg import MarkerArray
 import rospy
 import os
@@ -86,15 +86,15 @@ def write_position_info():
     rospy.wait_for_message('/vehicle_cmd', VehicleCmd, timeout=None)
     with open(center_offset_file, "w") as f:
         center_offset_wr = csv.writer(f)
-        center_offset_wr.writerow(['ts', 'state', 'center_offset', 'res_t', 'instance', 'x', 'y'])
+        center_offset_wr.writerow(['ts', 'state', 'center_offset', 'ndt_response_time(ms)', 'instance', 'x', 'y', 'ndt_score'])
         prev_dis = 0
         while not rospy.is_shutdown():
             gnss_msg = rospy.wait_for_message('/gnss_pose', PoseStamped, timeout=None)
             state_msg = rospy.wait_for_message('/behavior_state', MarkerArray, timeout=None)
             ndt_stat_msg = rospy.wait_for_message('/ndt_stat', NDTStat, timeout=None)
-            rubis_ndt_pose_msg = rospy.wait_for_message('/rubis_ndt_pose', RubisPoseStamped, timeout=None)
+            twist_msg = rospy.wait_for_message('/rubis_twist_cmd', TwistStamped, timeout=None)
 
-            instance=rubis_ndt_pose_msg.instance
+            instance=twist_msg.instance
 
             pose_x = round(gnss_msg.pose.position.x, 3)
             pose_y = round(gnss_msg.pose.position.y, 3)
@@ -117,7 +117,7 @@ def write_position_info():
             else:
                 state_text = 'Normal'
 
-            center_offset_wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance, pose_x, pose_y])    
+            center_offset_wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance, pose_x, pose_y, str(ndt_stat_msg.score)])    
     f.close()
 
 if __name__ == '__main__':

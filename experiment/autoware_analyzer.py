@@ -82,12 +82,14 @@ def profile_response_time_for_experiment(base_path, is_collapsed_list, filter=0.
     plt.close()
 
     deadline_miss_info_path = 'analyzation/' + exp_title + '/' + exp_title +'_deadline_miss_info.yaml'
+    deadline_miss_info = {}
+    deadline_miss_info['deadline_ms'] = 500.0
     if collision_cnt != 0:
-        deadline_miss_info = {'deadline_miss_ratio_when_collpased':deadline_miss_cnt_when_collpased/collision_cnt, \
-                            'deadline_miss_ratio_when_not_collpased': (deadline_miss_cnt_when_not_collpased/(len(is_collapsed_list) - collision_cnt))}
+        deadline_miss_info['deadline_miss_ratio_when_collpased']  = deadline_miss_cnt_when_collpased/collision_cnt
+        deadline_miss_info['deadline_miss_ratio_when_not_collpased'] =  (deadline_miss_cnt_when_not_collpased/(len(is_collapsed_list) - collision_cnt))
     else:
-        deadline_miss_info = {'deadline_miss_ratio_when_collpased':0.0, \
-                            'deadline_miss_ratio_when_not_collpased': (0.0)}
+        deadline_miss_info['deadline_miss_ratio_when_collpased'] = 0.0
+        deadline_miss_info['deadline_miss_ratio_when_not_collpased'] = 0.0
     with open(deadline_miss_info_path, 'w') as f: yaml.dump(deadline_miss_info, f, default_flow_style=False)
 
     return
@@ -247,6 +249,7 @@ if __name__ == '__main__':
                 = aa.get_center_offset(center_offset_path)
             start_instance = int(list(center_offset.keys())[0])
             end_instance = int(list(center_offset.keys())[-1])
+            print(start_instance, end_instance)
             profile_center_offset(center_offset_path, center_offset, max_center_offset, avg_center_offset, is_collapsed)
 
             # E2E Response Time
