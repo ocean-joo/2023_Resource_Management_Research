@@ -46,7 +46,8 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
 
             end_time = float(row[3])
             instance_id = int(row[4])
-            if i == 1: start_instance = instance_id            
+            if instance_id in instance_info: continue # Use fastest instance
+            if i == 1: start_instance = instance_id         
             instance_info[instance_id] = {'start_time': -1.0, 'end_time': end_time}
 
     with open (first_node_path) as f:
@@ -62,7 +63,8 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
             instance_info[instance_id]['start_time'] = start_time
     
     for instance_id in instance_info:
-        response_time = instance_info[instance_id]['end_time'] - instance_info[instance_id]['start_time']
+        response_time = instance_info[instance_id]['end_time'] - instance_info[instance_id]['start_time']        
+
         E2E_response_time[instance_id] = float(response_time * 1000) # unit: ms
 
     keys = list(E2E_response_time.keys())

@@ -249,7 +249,6 @@ if __name__ == '__main__':
                 = aa.get_center_offset(center_offset_path)
             start_instance = int(list(center_offset.keys())[0])
             end_instance = int(list(center_offset.keys())[-1])
-            print(start_instance, end_instance)
             profile_center_offset(center_offset_path, center_offset, max_center_offset, avg_center_offset, is_collapsed)
 
             # E2E Response Time
