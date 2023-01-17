@@ -6,11 +6,29 @@ import numpy as np
 
 configs = {}
 
-def profile_response_time(dir_path, E2E_response_time, max_E2E_response_time, avg_E2E_response_time, is_collapsed, filter=0.8):
+def profile_response_time(dir_path, start_instance, end_instance, is_collapsed, filter=0.8):
+    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, 'shortest', filter)
+    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, 'longest', filter)
+    return
+
+def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, mode, filter=0.8):
+    if mode == 'shortest': label = 'Shortest'
+    elif mode == 'longest': label = 'Longest'
+    else: 
+        print('[ERROR] Invalidate mode:', mode)
+        exit()
+
+    first_node_path = dir_path + '/' + configs['first_node'] + '.csv'
+    last_node_path = dir_path + '/' + configs['last_node'] + '.csv'
+
+    E2E_response_time, max_E2E_response_time, avg_E2E_response_time \
+                = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, mode=mode)
+
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
-    output_dir_path = 'analyzation/' + exp_title + '/E2E_response_time'
-    if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
+
+    shortest_output_dir_path = 'analyzation/' + exp_title + '/' + mode + '_E2E_response_time'
+    if not os.path.exists(shortest_output_dir_path): os.system('mkdir -p ' + shortest_output_dir_path)
 
     # Plot graph
     x_data = list(E2E_response_time.keys()) # Instance IDs
@@ -19,16 +37,18 @@ def profile_response_time(dir_path, E2E_response_time, max_E2E_response_time, av
         x_data = x_data[:int(len(x_data) * filter)]
         y_data = y_data[:int(len(y_data) * filter)]
 
-    plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_E2E_plot.png'
-    
+    plot_path = shortest_output_dir_path+'/' + exp_title + '_' + exp_id + '_' + mode + '_E2E_plot.png'
+    if is_collapsed: reference_x = x_data[-1]
+    else: reference_x = x_data[0] + 100    
+
     plt.plot(x_data, y_data)
     plt.axhline(y = max_E2E_response_time, color = 'r', linestyle = ':', label='Max')
     plt.axhline(y = avg_E2E_response_time, color = 'b', linestyle = ':', label='Avg')    
-    plt.axvline(x = x_data[0] + 110, color='k', label='Avoid')
+    plt.axvline(x = reference_x, color='k', label='Avoid')
     plt.legend()
     plt.ylim(0, 1000)
     plt.xlabel('Instance ID')
-    plt.ylabel('E2E Response Time (ms)')
+    plt.ylabel(label + ' E2E Response Time (ms)')
     plt.yticks(np.arange(0,1000,100))
     plt.title('is_collapsed='+str(is_collapsed))
     plt.savefig(plot_path)
@@ -36,20 +56,34 @@ def profile_response_time(dir_path, E2E_response_time, max_E2E_response_time, av
 
     return
 
-def profile_response_time_for_experiment(base_path, is_collapsed_list, filter=0.8, deadline=500.0):
-    n = len(is_collapsed_list)
+def profile_response_time_for_experiment(base_path, is_collapsed_list, filter=0.8, deadline=450.0, instance_offset=20):    
     exp_title = base_path.split('/')[1]
+    instance_offset = int(instance_offset)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, deadline, instance_offset, mode='shortest', filter=filter)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, deadline, instance_offset, mode='longest', filter=filter)
 
+    return
+
+def _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, deadline, instance_offset, mode, filter=0.8):
+    if mode == 'shortest':
+        label = 'Shortest'
+    elif mode == 'longest':
+        label = 'Longest'
+    else:
+        print('[ERROR] Invalid mode:', label)
+
+    n = len(is_collapsed_list)
     collision_cnt = sum(is_collapsed_list)
     deadline_miss_cnt_when_collpased = 0
-    deadline_miss_cnt_when_not_collpased = 0
+    deadline_miss_cnt_when_not_collpased = 0    
 
     for idx in range(n):
+        is_collapsed = is_collapsed_list[idx]
         response_time_path = base_path + '/' + str(idx) + '/response_time'
         first_node_path = response_time_path + '/' + configs['first_node'] + '.csv'
         last_node_path = response_time_path + '/' + configs['last_node'] + '.csv'
         E2E_response_time, _, _ \
-            = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance)
+            = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, mode)
 
         x_data = list(E2E_response_time.keys()) # Instance IDs
         y_data = list(E2E_response_time.values()) # E2E response time(ms)
@@ -58,32 +92,42 @@ def profile_response_time_for_experiment(base_path, is_collapsed_list, filter=0.
             y_data = y_data[:int(len(y_data) * filter)]
 
         # Validate miss deadline during avoidance
-        for k in range(x_data[0]+110 - 10, x_data[0]+110 + 10):
-            if not k in E2E_response_time.keys(): continue
-            if E2E_response_time[k] >= deadline:
-                if is_collapsed_list[idx] == 1: deadline_miss_cnt_when_collpased = deadline_miss_cnt_when_collpased + 1
-                else: deadline_miss_cnt_when_not_collpased = deadline_miss_cnt_when_not_collpased + 1
-                break
+        if is_collapsed:
+            reference_x = x_data[-1]
+            for k in range(reference_x - instance_offset, reference_x + 1):
+                if not k in E2E_response_time.keys(): continue
+                if E2E_response_time[k] >= deadline:
+                    if is_collapsed_list[idx] == 1: deadline_miss_cnt_when_collpased = deadline_miss_cnt_when_collpased + 1
+                    else: deadline_miss_cnt_when_not_collpased = deadline_miss_cnt_when_not_collpased + 1
+                    break            
+        else:
+            reference_x = x_data[0] + 100
+            for k in range(reference_x + 100 - instance_offset, reference_x + 100 + instance_offset):
+                if not k in E2E_response_time.keys(): continue
+                if E2E_response_time[k] >= deadline:
+                    if is_collapsed_list[idx] == 1: deadline_miss_cnt_when_collpased = deadline_miss_cnt_when_collpased + 1
+                    else: deadline_miss_cnt_when_not_collpased = deadline_miss_cnt_when_not_collpased + 1
+                    break
 
         color = 'b'
         if is_collapsed_list[idx] == 1: color = 'r' 
 
         plt.plot(x_data, y_data, color, linewidth=1.0)
 
-    plot_path = 'analyzation/' + exp_title + '/' + exp_title +'_E2E_response_time.png'
+    plot_path = 'analyzation/' + exp_title + '/' + exp_title +'_' + mode + '_E2E_response_time.png'
 
     plt.legend()    
     plt.xlabel('Instance ID')
-    plt.ylabel('E2E Response Time (ms)')
+    plt.ylabel(label + ' E2E Response Time (ms)')
     plt.ylim(0, 1000)
     plt.yticks(np.arange(0,1000,100))
     plt.title('is_collapsed='+str(is_collapsed))
     plt.savefig(plot_path)
     plt.close()
 
-    deadline_miss_info_path = 'analyzation/' + exp_title + '/' + exp_title +'_deadline_miss_info.yaml'
+    deadline_miss_info_path = 'analyzation/' + exp_title + '/' + exp_title + '_deadline_miss_info(' + mode + ').yaml'
     deadline_miss_info = {}
-    deadline_miss_info['deadline_ms'] = 500.0
+    deadline_miss_info['deadline_ms'] = deadline
     if collision_cnt != 0:
         deadline_miss_info['deadline_miss_ratio_when_collpased']  = deadline_miss_cnt_when_collpased/collision_cnt
         deadline_miss_info['deadline_miss_ratio_when_not_collpased'] =  (deadline_miss_cnt_when_not_collpased/(len(is_collapsed_list) - collision_cnt))
@@ -252,12 +296,8 @@ if __name__ == '__main__':
             profile_center_offset(center_offset_path, center_offset, max_center_offset, avg_center_offset, is_collapsed)
 
             # E2E Response Time
-            response_time_path = base_path + '/' + str(idx) + '/response_time'
-            first_node_path = response_time_path + '/' + configs['first_node'] + '.csv'
-            last_node_path = response_time_path + '/' + configs['last_node'] + '.csv'
-            E2E_response_time, max_E2E_response_time, avg_E2E_response_time \
-                = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance)
-            profile_response_time(response_time_path, E2E_response_time, max_E2E_response_time, avg_E2E_response_time, is_collapsed)
+            response_time_path = base_path + '/' + str(idx) + '/response_time'            
+            profile_response_time(response_time_path, start_instance, end_instance, is_collapsed)
 
             # Trajectories
             dir_path = base_path + '/' + str(idx)

@@ -33,7 +33,11 @@ def read_topics_from_bag(rosbag_path, topic_name):
         output.append(msg)
     return output
 
-def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E2E_end_instance):
+def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E2E_end_instance, mode):
+    if mode != 'shortest' and mode != 'longest':
+        print('[ERROR] Invalidate mode:', mode)
+        exit()
+
     instance_info = {}
     start_instance = -1
     E2E_response_time = {}
@@ -46,7 +50,8 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
 
             end_time = float(row[3])
             instance_id = int(row[4])
-            if instance_id in instance_info: continue # Use fastest instance
+            if mode == 'shortest':
+                if instance_id in instance_info: continue
             if i == 1: start_instance = instance_id         
             instance_info[instance_id] = {'start_time': -1.0, 'end_time': end_time}
 
