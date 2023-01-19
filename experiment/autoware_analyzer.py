@@ -3,31 +3,32 @@ import matplotlib.pyplot as plt
 import os
 import scripts.autoware_analyzer_lib as aa
 import numpy as np
+from tqdm import tqdm
 
 configs = {}
 
-def profile_response_time(dir_path, start_instance, end_instance, is_collapsed, filter=0.8):
-    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, 'shortest', filter)
-    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, 'longest', filter)
+def profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, filter=0.8):
+    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, 'shortest', filter)
+    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, 'longest', filter)
     return
 
-def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, mode, filter=0.8):
-    if mode == 'shortest': label = 'Shortest'
-    elif mode == 'longest': label = 'Longest'
+def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, type, filter=0.8):
+    if type == 'shortest': label = 'Shortest'
+    elif type == 'longest': label = 'Longest'
     else: 
-        print('[ERROR] Invalidate mode:', mode)
+        print('[ERROR] Invalidate type:', type)
         exit()
 
     first_node_path = dir_path + '/' + configs['first_node'] + '.csv'
     last_node_path = dir_path + '/' + configs['last_node'] + '.csv'
 
     E2E_response_time, max_E2E_response_time, avg_E2E_response_time \
-                = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, mode=mode)
+                = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type=type)
 
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
 
-    shortest_output_dir_path = 'analyzation/' + exp_title + '/' + mode + '_E2E_response_time'
+    shortest_output_dir_path = 'analyzation/' + exp_title + '/' + type + '_E2E_response_time'
     if not os.path.exists(shortest_output_dir_path): os.system('mkdir -p ' + shortest_output_dir_path)
 
     # Plot graph
@@ -37,7 +38,7 @@ def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed,
         x_data = x_data[:int(len(x_data) * filter)]
         y_data = y_data[:int(len(y_data) * filter)]
 
-    plot_path = shortest_output_dir_path+'/' + exp_title + '_' + exp_id + '_' + mode + '_E2E_plot.png'
+    plot_path = shortest_output_dir_path+'/' + exp_title + '_' + exp_id + '_' + type + '_E2E_plot.png'
     if is_collapsed: reference_x = x_data[-1]
     else: reference_x = x_data[0] + 100    
 
@@ -50,40 +51,58 @@ def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed,
     plt.xlabel('Instance ID')
     plt.ylabel(label + ' E2E Response Time (ms)')
     plt.yticks(np.arange(0,1000,100))
-    plt.title('is_collapsed='+str(is_collapsed))
+    plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
     plt.savefig(plot_path)
     plt.close()
 
     return
 
-def profile_response_time_for_experiment(base_path, is_collapsed_list, filter=0.8, deadline=450.0, instance_offset=20):    
+def profile_response_time_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, filter=0.8, deadline=450.0, instance_offset=20):    
     exp_title = base_path.split('/')[1]
     instance_offset = int(instance_offset)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, deadline, instance_offset, mode='shortest', filter=filter)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, deadline, instance_offset, mode='longest', filter=filter)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='shortest', mode='all', filter=filter)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='shortest', mode='collision', filter=filter)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='shortest', mode='matching_failed', filter=filter)    
+
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='longest', mode='all', filter=filter)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='longest', mode='collision', filter=filter)
+    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='longest', mode='matching_failed', filter=filter)
 
     return
 
-def _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, deadline, instance_offset, mode, filter=0.8):
-    if mode == 'shortest':
+def _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type, mode, filter=0.8):
+    if type == 'shortest':
         label = 'Shortest'
-    elif mode == 'longest':
+    elif type == 'longest':
         label = 'Longest'
     else:
         print('[ERROR] Invalid mode:', label)
+    
+    available_mode = ['all', 'collision', 'matching_failed']
+    if mode not in available_mode:
+        print('[ERROR] Invalidate mode:', mode)
+        exit()
 
     n = len(is_collapsed_list)
     collision_cnt = sum(is_collapsed_list)
     deadline_miss_cnt_when_collpased = 0
     deadline_miss_cnt_when_not_collpased = 0    
 
-    for idx in range(n):
-        is_collapsed = is_collapsed_list[idx]
+    target_experiment_idx_list = []
+    if mode == 'all': target_experiment_idx_list = range(n)
+    elif mode == 'collision': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_collapsed_list)
+    elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
+    else:
+        merged_indices = aa.merge_binary_list(is_collapsed_list, is_matching_failed_list)
+        target_experiment_idx_list = aa.get_idices_of_one_from_list(merged_indices, reverse=True)
+
+    for idx in target_experiment_idx_list:
+        is_collapsed = is_collapsed_list[idx]        
         response_time_path = base_path + '/' + str(idx) + '/response_time'
         first_node_path = response_time_path + '/' + configs['first_node'] + '.csv'
         last_node_path = response_time_path + '/' + configs['last_node'] + '.csv'
         E2E_response_time, _, _ \
-            = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, mode)
+            = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type)
 
         x_data = list(E2E_response_time.keys()) # Instance IDs
         y_data = list(E2E_response_time.values()) # E2E response time(ms)
@@ -114,14 +133,16 @@ def _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_lis
 
         plt.plot(x_data, y_data, color, linewidth=1.0)
 
-    plot_path = 'analyzation/' + exp_title + '/' + exp_title +'_' + mode + '_E2E_response_time.png'
+    plot_path = 'analyzation/' + exp_title + '/' + exp_title + '_' + mode + '_' + type + '_E2E_response_time.png'
 
     plt.legend()    
     plt.xlabel('Instance ID')
     plt.ylabel(label + ' E2E Response Time (ms)')
     plt.ylim(0, 1000)
     plt.yticks(np.arange(0,1000,100))
-    plt.title('is_collapsed='+str(is_collapsed))
+    plt.title('Iteration: ' + str(n) \
+            + ' / Collision ratio: ' + str(sum(is_collapsed_list)/len(is_collapsed_list)) \
+            + ' / Matching failure ratio: '+ str(sum(is_matching_failed_list)/len(is_matching_failed_list)))
     plt.savefig(plot_path)
     plt.close()
 
@@ -159,7 +180,7 @@ def profile_center_offset(dir_path, center_offset, max_center_offset, avg_center
     plt.savefig(plot_path)
     plt.close()
 
-def profile_waypoints(dir_path, is_collapsed):
+def profile_waypoints(dir_path, is_collapsed, is_matching_failed):
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
     output_dir_path = 'analyzation/' + exp_title + '/trajectories'
@@ -209,13 +230,23 @@ def profile_waypoints(dir_path, is_collapsed):
     # plt.ylim(20,75)
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
-    plt.title('is_collapsed='+str(is_collapsed))
+    plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
     plt.legend()
     plt.savefig(plot_path)
 
     plt.close()
 
-def profile_waypoints_for_experiment(base_path, is_collapsed_list):
+def profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list):
+    _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='all')
+    _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='collision')
+    _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='matching_failed')
+
+def _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='all'):
+    available_mode = ['all', 'collision', 'matching_failed']
+    if mode not in available_mode:
+        print('[ERROR] Invalidate mode:', mode)
+        exit()
+    
     n = len(is_collapsed_list)
 
     # Centerline
@@ -229,10 +260,20 @@ def profile_waypoints_for_experiment(base_path, is_collapsed_list):
         center_line_y.append(float(center_line_point[1]))  
 
     plt.plot(center_line_x, center_line_y, 'k', label='Center line')
+    
+    target_experiment_idx_list = []
+    if mode == 'all': target_experiment_idx_list = range(n)
+    elif mode == 'collision':
+        target_experiment_idx_list = aa.get_idices_of_one_from_list(is_collapsed_list)
+    elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
+    else:
+        merged_indices = aa.merge_binary_list(is_collapsed_list, is_matching_failed_list)
+        target_experiment_idx_list = aa.get_idices_of_one_from_list(merged_indices, reverse=True)
+
+    exp_title = base_path.split('/')[1]
 
     # Waypoints
-    for idx in range(n):
-        exp_title = base_path.split('/')[1]
+    for idx in target_experiment_idx_list:        
         exp_id = str(idx)
         label = exp_title + '_' + exp_id
 
@@ -259,28 +300,48 @@ def profile_waypoints_for_experiment(base_path, is_collapsed_list):
     plt.plot(npc2_x, npc2_y, 'k')
 
     # Plot
-    plot_path = 'analyzation/' + exp_title + '/' + exp_title +'_waypoints.png'
-    title = 'Iteration: ' + str(n) + ' / Collision ratio: ' + str(sum(is_collapsed_list)/len(is_collapsed_list)) \
+    plot_path = 'analyzation/' + exp_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
             
     plt.xlim(-70, 40)
     plt.ylim(20,75)
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
-    plt.title(title)
+    plt.title('Iteration: ' + str(n) \
+            + ' / Collision ratio: ' + str(sum(is_collapsed_list)/len(is_collapsed_list)) \
+            + ' / Matching failure ratio: '+ str(sum(is_matching_failed_list)/len(is_matching_failed_list)))
     plt.savefig(plot_path)
 
     plt.close()
+
+def profile_analyzation_info(base_path, is_collapsed_list, is_matching_failed_list):
+    exp_title = base_path.split('/')[1]
+
+    analyzation_info = {}
+    collision_index_list = aa.get_idices_of_one_from_list(is_collapsed_list)
+    matching_failure_index_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
+    
+    analyzation_info['collision_index'] = collision_index_list
+    analyzation_info['collision_ratio'] = len(collision_index_list)/len(is_collapsed_list)
+    analyzation_info['matching_failure_index'] = matching_failure_index_list
+    analyzation_info['matching_failure_ratio'] = len(matching_failure_index_list)/len(is_matching_failed_list)
+
+    analyzation_info_path = 'analyzation/' + exp_title + '/analyzation_info.yaml'
+    with open(analyzation_info_path, 'w') as f: yaml.dump(analyzation_info, f, default_flow_style=False)
+
+    return
 
 if __name__ == '__main__':    
     with open('yaml/autoware_analyzer.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     
-    for base_path in configs['experiment_title']:
-        base_path = 'results/' + base_path
+    for experiment_title in configs['experiment_title']:
+        base_path = 'results/' + experiment_title
         n = aa.get_number_of_files(base_path)
         is_collapsed_list = []
-
-        for idx in range(n):
+        is_matching_failed_list = []
+        pbar = tqdm(range(n))
+        pbar.set_description(experiment_title)
+        for idx in pbar:
             # Collision
             experiment_info_path = base_path + '/' + str(idx) + '/experiment_info.yaml'
             experiment_info = aa.get_experiment_info(experiment_info_path)
@@ -295,15 +356,21 @@ if __name__ == '__main__':
             end_instance = int(list(center_offset.keys())[-1])
             profile_center_offset(center_offset_path, center_offset, max_center_offset, avg_center_offset, is_collapsed)
 
+            # Check matching is failed
+            is_matching_failed = aa.check_matching_is_failed(center_offset_path, start_instance, end_instance)
+            is_matching_failed_list.append(is_matching_failed)
+
             # E2E Response Time
             response_time_path = base_path + '/' + str(idx) + '/response_time'            
-            profile_response_time(response_time_path, start_instance, end_instance, is_collapsed)
+            profile_response_time(response_time_path, start_instance, end_instance, is_collapsed, is_matching_failed)
 
             # Trajectories
             dir_path = base_path + '/' + str(idx)
-            profile_waypoints(dir_path, is_collapsed_list[idx])
+            profile_waypoints(dir_path, is_collapsed_list[idx], is_matching_failed)
 
-        # Waypoints
+        # Profile for whole experiment
+        profile_analyzation_info(base_path, is_collapsed_list, is_matching_failed_list)
         is_collapsed_list = aa.convert_boolean_list_to_int_list(is_collapsed_list)        
-        profile_response_time_for_experiment(base_path, is_collapsed_list)
-        profile_waypoints_for_experiment(base_path, is_collapsed_list)
+        is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list)        
+        profile_response_time_for_experiment(base_path, is_collapsed_list, is_matching_failed)
+        profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed)

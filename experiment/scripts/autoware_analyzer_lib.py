@@ -33,9 +33,9 @@ def read_topics_from_bag(rosbag_path, topic_name):
         output.append(msg)
     return output
 
-def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E2E_end_instance, mode):
-    if mode != 'shortest' and mode != 'longest':
-        print('[ERROR] Invalidate mode:', mode)
+def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E2E_end_instance, type):
+    if type != 'shortest' and type != 'longest':
+        print('[ERROR] Invalidate type:', type)
         exit()
 
     instance_info = {}
@@ -50,7 +50,7 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
 
             end_time = float(row[3])
             instance_id = int(row[4])
-            if mode == 'shortest':
+            if type == 'shortest':
                 if instance_id in instance_info: continue
             if i == 1: start_instance = instance_id         
             instance_info[instance_id] = {'start_time': -1.0, 'end_time': end_time}
@@ -163,9 +163,38 @@ def get_number_of_files(path):
     output = output.split('\n')
     return len(output) - 1
 
+def check_matching_is_failed(center_offset_path, start_instance, end_instance):    
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: continue
+            instance = int(line[4])
+            ndt_score = float(line[7])
+            if instance < start_instance: continue
+            if ndt_score > 2.0: return True
+            if instance > end_instance: break
+            
+    return False
+
 def mouse_event(event):
     print('x: {} and y: {}'.format(event.xdata, event.ydata))
     return
 
 def convert_boolean_list_to_int_list(list_of_booleans):    
     return [int(item) for item in list_of_booleans]
+
+def get_idices_of_one_from_list(input, reverse=False):
+    output = []
+    for i, v in enumerate(input):
+        if reverse: v = 2**v%2
+        if v: output.append(i)
+    return output
+
+def merge_binary_list(a, b):
+    output = []
+    for i,_ in enumerate(a):
+        if a[i] == 1 or b[i] == 1: output.append(i)
+
+    return output
+    
+

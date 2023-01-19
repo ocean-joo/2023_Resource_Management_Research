@@ -36,6 +36,7 @@ def autorunner():
         else:
             continue
         if not is_experiment_running.is_set(): break
+        print('- Autorunner: Unlock barrier')
         barrier.wait()
 
     print('- Turn off Autorunner thread')
@@ -130,6 +131,7 @@ def experiment_manager(main_thread_pid):
             payload = {"text": message}
             slack_library.send_slack_message(payload, slack_webhook)
             break
+        print('- Manager: Unlock barrier')
         barrier.wait()
         barrier.reset()
         time.sleep(3)                
