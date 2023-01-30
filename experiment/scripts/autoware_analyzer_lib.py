@@ -12,6 +12,14 @@ def save_dict(data, path):
         yaml.dump(data, f, default_flow_style=False)
     return
 
+def subsctract_dicts(data1, data2):
+    output = {}
+    keys = data1.keys()
+    for k in keys:
+        if k not in data2: continue
+        output[k] = data1[k] - data2[k]
+    return output
+
 def get_dict_avg(data):
     sum = 0.0
     for key in data:
@@ -33,6 +41,25 @@ def read_topics_from_bag(rosbag_path, topic_name):
         output.append(msg)
     return output
 
+def get_instance_pair_by_x(center_offset_path, start_x, end_x):
+    output_start_instance = -1.0
+    output_end_instance = -1.0
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+
+        for i, line in enumerate(reader):
+            if i == 0: continue
+            instance = float(line[4])
+            x = float(line[5])
+            if start_x > end_x:
+                if x < start_x and output_start_instance < 0: output_start_instance = instance
+                if x < end_x and output_end_instance < 0: output_end_instance = instance
+            else:
+                if x > start_x and output_start_instance < 0: output_start_instance = instance
+                if x > end_x and output_end_instance < 0: output_end_instance = instance
+    # print(output_start_instance, output_end_instance)
+    return output_start_instance, output_end_instance    
+
 def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E2E_end_instance, type):
     if type != 'shortest' and type != 'longest':
         print('[ERROR] Invalidate type:', type)
@@ -43,8 +70,8 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
     E2E_response_time = {}
 
     # E2E Response Time
-    with open(last_node_path) as f:
-        reader = csv.reader(f)        
+    with open(last_node_path) as f_last:
+        reader = csv.reader(f_last)        
         for i, row in enumerate(reader):            
             if i == 0: continue # Skip first row
 
@@ -55,21 +82,21 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
             if i == 1: start_instance = instance_id         
             instance_info[instance_id] = {'start_time': -1.0, 'end_time': end_time}
 
-    with open (first_node_path) as f:
-        reader = csv.reader(f)
+    with open (first_node_path) as f_start:        
+        reader = csv.reader(f_start)
         for i, row in enumerate(reader):
-            if i == 0: continue # Skip first row
-
-            if i < start_instance: continue
+            
+            if i == 0: continue # Skip first row            
+            
             start_time = float(row[2])
             instance_id = int(row[4])
-
+            if instance_id < start_instance: continue
             if instance_id not in instance_info: continue
+            if type == 'shortest':
+                if instance_info[instance_id]['start_time'] > 0: continue
             instance_info[instance_id]['start_time'] = start_time
-    
     for instance_id in instance_info:
         response_time = instance_info[instance_id]['end_time'] - instance_info[instance_id]['start_time']        
-
         E2E_response_time[instance_id] = float(response_time * 1000) # unit: ms
 
     keys = list(E2E_response_time.keys())
@@ -79,9 +106,9 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
         if key > E2E_start_instance and not does_start_instance_found:
             E2E_start_instance = key
             does_start_instance_found = True
-        if key > E2E_end_instance:
-            E2E_end_instance = key
-            break
+            continue             
+        E2E_end_instance = key               
+        if key > E2E_end_instance and E2E_end_instance > 0.0: break        
     remove_target = []
     for k in E2E_response_time:
         if k < E2E_start_instance or k > E2E_end_instance or k not in keys: remove_target.append(k)        
@@ -190,11 +217,10 @@ def get_idices_of_one_from_list(input, reverse=False):
         if v: output.append(i)
     return output
 
-def merge_binary_list(a, b):
+def merge_binary_list_to_idx_list(a, b):
     output = []
     for i,_ in enumerate(a):
         if a[i] == 1 or b[i] == 1: output.append(i)
-
     return output
     
 

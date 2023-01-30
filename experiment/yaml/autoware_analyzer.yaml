@@ -1,3 +1,28 @@
-experiment_title: ['230118_AVOID']
-first_node: 'lidar_republisher'
-last_node: 'op_motion_predictor'
+# experiment_title: ['test']
+# output_title:     ['test']
+# first_node:       ['lidar_republisher']
+# last_node:        ['twist_gate']
+# E2E_deadline:     [400.0]
+
+# # The node chain for LKAS
+# node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
+
+
+
+# experiment_title: ['230118_AVOID', '230119_AVOID_IVI1', '230125_AVOID_IVI1_BANDWIDTH']
+# output_title:     ['230118_AVOID++LKAS', '230119_AVOID_IVI1++LKAS', '230125_AVOID_IVI1_BANDWIDTH++LKAS']
+# first_node:       ['lidar_republisher', 'lidar_republisher', 'lidar_republisher']
+# last_node:        ['twist_gate', 'twist_gate', 'twist_gate']
+# E2E_deadline:     [400.0, 400.0, 400.0]
+
+# # The node chain for LKAS
+# node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
+
+experiment_title: ['230118_AVOID', '230119_AVOID_IVI1', '230125_AVOID_IVI1_BANDWIDTH']
+output_title:     ['230118_AVOID++DETECTION', '230119_AVOID_IVI1++DETECTION', '230125_AVOID_IVI1_BANDWIDTH++DETECTION']
+first_node:       ['lidar_republisher', 'lidar_republisher', 'lidar_republisher']
+last_node:        ['op_motion_predictor', 'op_motion_predictor', 'op_motion_predictor']
+E2E_deadline:     [150.0, 150.0, 150.0]
+
+# The node chain for detection
+node_chain: ['lidar_republisher', 'ray_ground_filter', 'lidar_euclidean_cluster_detect', 'op_motion_predictor']

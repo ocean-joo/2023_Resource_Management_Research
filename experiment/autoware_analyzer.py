@@ -3,24 +3,25 @@ import matplotlib.pyplot as plt
 import os
 import scripts.autoware_analyzer_lib as aa
 import numpy as np
+import copy
 from tqdm import tqdm
 
 configs = {}
 
-def profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, filter=0.8):
-    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, 'shortest', filter)
-    _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, 'longest', filter)
+def profile_response_time(dir_path, output_title, first_node, last_node, start_instance, end_instance, is_collapsed, is_matching_failed, filter=1.0):
+    _profile_response_time(dir_path, output_title, first_node, last_node, start_instance, end_instance, is_collapsed, is_matching_failed, 'shortest', filter)
+    # _profile_response_time(dir_path, output_title, first_node, last_node, start_instance, end_instance, is_collapsed, is_matching_failed, 'longest', filter)
     return
 
-def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed, is_matching_failed, type, filter=0.8):
+def _profile_response_time(dir_path, output_title, first_node, last_node, start_instance, end_instance, is_collapsed, is_matching_failed, type, filter=1.0):
     if type == 'shortest': label = 'Shortest'
     elif type == 'longest': label = 'Longest'
     else: 
         print('[ERROR] Invalidate type:', type)
         exit()
 
-    first_node_path = dir_path + '/' + configs['first_node'] + '.csv'
-    last_node_path = dir_path + '/' + configs['last_node'] + '.csv'
+    first_node_path = dir_path + '/' + first_node + '.csv'
+    last_node_path = dir_path + '/' + last_node + '.csv'
 
     E2E_response_time, max_E2E_response_time, avg_E2E_response_time \
                 = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type=type)
@@ -28,8 +29,8 @@ def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed,
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
 
-    shortest_output_dir_path = 'analyzation/' + exp_title + '/' + type + '_E2E_response_time'
-    if not os.path.exists(shortest_output_dir_path): os.system('mkdir -p ' + shortest_output_dir_path)
+    output_dir_path = 'analyzation/' + output_title + '/' + type + '_E2E_response_time'
+    if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
     # Plot graph
     x_data = list(E2E_response_time.keys()) # Instance IDs
@@ -38,39 +39,32 @@ def _profile_response_time(dir_path, start_instance, end_instance, is_collapsed,
         x_data = x_data[:int(len(x_data) * filter)]
         y_data = y_data[:int(len(y_data) * filter)]
 
-    plot_path = shortest_output_dir_path+'/' + exp_title + '_' + exp_id + '_' + type + '_E2E_plot.png'
-    if is_collapsed: reference_x = x_data[-1]
-    else: reference_x = x_data[0] + 100    
+    plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_' + type + '_E2E_plot.png'
 
     plt.plot(x_data, y_data)
     plt.axhline(y = max_E2E_response_time, color = 'r', linestyle = ':', label='Max')
     plt.axhline(y = avg_E2E_response_time, color = 'b', linestyle = ':', label='Avg')    
-    plt.axvline(x = reference_x, color='k', label='Avoid')
     plt.legend()
     plt.ylim(0, 1000)
     plt.xlabel('Instance ID')
     plt.ylabel(label + ' E2E Response Time (ms)')
     plt.yticks(np.arange(0,1000,100))
-    plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
+    plt.title('E2E during avoidance\nis_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
     plt.savefig(plot_path)
     plt.close()
 
     return
 
-def profile_response_time_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, filter=0.8, deadline=450.0, instance_offset=20):    
-    exp_title = base_path.split('/')[1]
-    instance_offset = int(instance_offset)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='shortest', mode='all', filter=filter)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='shortest', mode='collision', filter=filter)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='shortest', mode='matching_failed', filter=filter)    
-
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='longest', mode='all', filter=filter)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='longest', mode='collision', filter=filter)
-    _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type='longest', mode='matching_failed', filter=filter)
+def profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed_list, x_range=[0.0, 0.0], filter=1.0, deadline=450.0):    
+    exp_title = source_path.split('/')[1]
+    _profile_response_time_for_experiment(source_path, output_title, first_node, last_node, exp_title, is_collapsed_list, is_matching_failed_list, deadline, type='shortest', mode='all', x_range=x_range, filter=filter)
+    _profile_response_time_for_experiment(source_path, output_title, first_node, last_node, exp_title, is_collapsed_list, is_matching_failed_list, deadline, type='shortest', mode='normal', x_range=x_range, filter=filter)
+    _profile_response_time_for_experiment(source_path, output_title, first_node, last_node, exp_title, is_collapsed_list, is_matching_failed_list, deadline, type='shortest', mode='collision', x_range=x_range, filter=filter)
+    _profile_response_time_for_experiment(source_path, output_title, first_node, last_node, exp_title, is_collapsed_list, is_matching_failed_list, deadline, type='shortest', mode='matching_failed', x_range=x_range, filter=filter)
 
     return
 
-def _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_list, is_matching_failed_list, deadline, instance_offset, type, mode, filter=0.8):
+def _profile_response_time_for_experiment(source_path, output_title, first_node, last_node, exp_title, is_collapsed_list, is_matching_failed_list, deadline, type, mode, x_range=[0.0, 0.0], filter=1.0):
     if type == 'shortest':
         label = 'Shortest'
     elif type == 'longest':
@@ -78,91 +72,118 @@ def _profile_response_time_for_experiment(base_path, exp_title, is_collapsed_lis
     else:
         print('[ERROR] Invalid mode:', label)
     
-    available_mode = ['all', 'collision', 'matching_failed']
+    available_mode = ['all', 'normal', 'collision', 'matching_failed']
     if mode not in available_mode:
         print('[ERROR] Invalidate mode:', mode)
         exit()
 
     n = len(is_collapsed_list)
     collision_cnt = sum(is_collapsed_list)
-    deadline_miss_cnt_when_collpased = 0
-    deadline_miss_cnt_when_not_collpased = 0    
+    sum_of_deadilne_miss_ratio = 0
 
     target_experiment_idx_list = []
     if mode == 'all': target_experiment_idx_list = range(n)
     elif mode == 'collision': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_collapsed_list)
     elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
-    else:
-        merged_indices = aa.merge_binary_list(is_collapsed_list, is_matching_failed_list)
-        target_experiment_idx_list = aa.get_idices_of_one_from_list(merged_indices, reverse=True)
-
+    elif mode == 'normal':
+        target_experiment_idx_list = list(range(n))
+        merged_indices = aa.merge_binary_list_to_idx_list(is_collapsed_list, is_matching_failed_list)
+        for remove_target in merged_indices:
+            target_experiment_idx_list.remove(remove_target)
+        
+    all_E2E_response_time_list = []
+    max_E2E_response_time_list = []
+    x_data = []
     for idx in target_experiment_idx_list:
         is_collapsed = is_collapsed_list[idx]        
-        response_time_path = base_path + '/' + str(idx) + '/response_time'
-        first_node_path = response_time_path + '/' + configs['first_node'] + '.csv'
-        last_node_path = response_time_path + '/' + configs['last_node'] + '.csv'
+        response_time_path = source_path + '/' + str(idx) + '/response_time'
+        center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        first_node_path = response_time_path + '/' + first_node + '.csv'
+        last_node_path = response_time_path + '/' + last_node + '.csv'
+        start_instance, end_instance = aa.get_instance_pair_by_x(center_offset_path, x_range[0], x_range[1])
+        if start_instance < 0: continue
+
         E2E_response_time, _, _ \
-            = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type)
+            = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type)        
 
         x_data = list(E2E_response_time.keys()) # Instance IDs
         y_data = list(E2E_response_time.values()) # E2E response time(ms)
         if not is_collapsed:
             x_data = x_data[:int(len(x_data) * filter)]
             y_data = y_data[:int(len(y_data) * filter)]
+        all_E2E_response_time_list.extend(y_data)
+        max_E2E_response_time_list.append(max(y_data))        
 
         # Validate miss deadline during avoidance
-        if is_collapsed:
-            reference_x = x_data[-1]
-            for k in range(reference_x - instance_offset, reference_x + 1):
-                if not k in E2E_response_time.keys(): continue
-                if E2E_response_time[k] >= deadline:
-                    if is_collapsed_list[idx] == 1: deadline_miss_cnt_when_collpased = deadline_miss_cnt_when_collpased + 1
-                    else: deadline_miss_cnt_when_not_collpased = deadline_miss_cnt_when_not_collpased + 1
-                    break            
-        else:
-            reference_x = x_data[0] + 100
-            for k in range(reference_x + 100 - instance_offset, reference_x + 100 + instance_offset):
-                if not k in E2E_response_time.keys(): continue
-                if E2E_response_time[k] >= deadline:
-                    if is_collapsed_list[idx] == 1: deadline_miss_cnt_when_collpased = deadline_miss_cnt_when_collpased + 1
-                    else: deadline_miss_cnt_when_not_collpased = deadline_miss_cnt_when_not_collpased + 1
-                    break
+        deadline_miss_cnt = 0
+        for instance in x_data:
+            if not instance in E2E_response_time.keys(): continue
+            if E2E_response_time[instance] >= deadline:
+                deadline_miss_cnt = deadline_miss_cnt + 1
+        sum_of_deadilne_miss_ratio = sum_of_deadilne_miss_ratio + float(deadline_miss_cnt)/float(len(x_data))
 
         color = 'b'
         if is_collapsed_list[idx] == 1: color = 'r' 
 
         plt.plot(x_data, y_data, color, linewidth=1.0)
 
-    plot_path = 'analyzation/' + exp_title + '/' + exp_title + '_' + mode + '_' + type + '_E2E_response_time.png'
+    # Statistics
+    if len(all_E2E_response_time_list) == 0:
+        max_E2E_response_time = 0    
+        avg_E2E_response_time = 0
+        var_E2E_response_time = 0
+        avg_max_E2E_response_time = 0
+    else:
+        max_E2E_response_time = max(all_E2E_response_time_list)    
+        avg_E2E_response_time = sum(all_E2E_response_time_list) / len(all_E2E_response_time_list)
+        var_E2E_response_time = float(np.var(all_E2E_response_time_list))
+        avg_max_E2E_response_time = sum(max_E2E_response_time_list) / len(max_E2E_response_time_list)
+    
+    E2E_response_time_info_path = 'analyzation/' + output_title + '/' + exp_title + '_E2E_response_time_info(' + mode + ',' + type + ').yaml'
+    E2E_response_time_info = {}
+    E2E_response_time_info['deadline_ms'] = deadline
+    E2E_response_time_info['max'] = max_E2E_response_time
+    E2E_response_time_info['avg'] = avg_E2E_response_time
+    E2E_response_time_info['var'] = var_E2E_response_time
+    E2E_response_time_info['avg_max'] = avg_max_E2E_response_time    
+
+    if collision_cnt != 0:
+        E2E_response_time_info['avg_miss_ratio'] =  float(sum_of_deadilne_miss_ratio) / float(len(target_experiment_idx_list))
+    else:
+        E2E_response_time_info['avg_miss_ratio'] = 0.0
+    with open(E2E_response_time_info_path, 'w') as f: yaml.dump(E2E_response_time_info, f, default_flow_style=False)
+
+    if len(is_collapsed_list) == 0: collision_ratio = 0
+    else: collision_ratio = sum(is_collapsed_list)/len(is_collapsed_list)
+
+    if len(is_matching_failed_list) == 0: matching_failure_ratio = 0
+    else: matching_failure_ratio = sum(is_matching_failed_list)/len(is_matching_failed_list)
+
+    # Plot    
+    plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_' + type + '_E2E_response_time.png'
 
     plt.legend()    
     plt.xlabel('Instance ID')
     plt.ylabel(label + ' E2E Response Time (ms)')
     plt.ylim(0, 1000)
     plt.yticks(np.arange(0,1000,100))
+    if len(x_data) != 0:
+        plt.text(min(x_data)+2, 950, 'max: ' + str(max_E2E_response_time))
+        plt.text(min(x_data)+2, 900, 'avg: ' + str(avg_E2E_response_time))
+        plt.text(min(x_data)+2, 850, 'var: ' + str(var_E2E_response_time))
+        plt.text(min(x_data)+2, 800, 'avg_miss_ratio: ' + str(E2E_response_time_info['avg_miss_ratio']))
     plt.title('Iteration: ' + str(n) \
-            + ' / Collision ratio: ' + str(sum(is_collapsed_list)/len(is_collapsed_list)) \
-            + ' / Matching failure ratio: '+ str(sum(is_matching_failed_list)/len(is_matching_failed_list)))
+            + ' / Collision ratio: ' + str(collision_ratio) \
+            + ' / Matching failure ratio: '+ str(matching_failure_ratio))
     plt.savefig(plot_path)
-    plt.close()
-
-    deadline_miss_info_path = 'analyzation/' + exp_title + '/' + exp_title + '_deadline_miss_info(' + mode + ').yaml'
-    deadline_miss_info = {}
-    deadline_miss_info['deadline_ms'] = deadline
-    if collision_cnt != 0:
-        deadline_miss_info['deadline_miss_ratio_when_collpased']  = deadline_miss_cnt_when_collpased/collision_cnt
-        deadline_miss_info['deadline_miss_ratio_when_not_collpased'] =  (deadline_miss_cnt_when_not_collpased/(len(is_collapsed_list) - collision_cnt))
-    else:
-        deadline_miss_info['deadline_miss_ratio_when_collpased'] = 0.0
-        deadline_miss_info['deadline_miss_ratio_when_not_collpased'] = 0.0
-    with open(deadline_miss_info_path, 'w') as f: yaml.dump(deadline_miss_info, f, default_flow_style=False)
+    plt.close()    
 
     return
 
-def profile_center_offset(dir_path, center_offset, max_center_offset, avg_center_offset, is_collapsed):
+def profile_center_offset(dir_path, output_title, center_offset, max_center_offset, avg_center_offset, is_collapsed):
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
-    output_dir_path = 'analyzation/' + exp_title + '/center_offset'
+    output_dir_path = 'analyzation/' + output_title + '/center_offset'
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
     # Plot graph
@@ -180,10 +201,24 @@ def profile_center_offset(dir_path, center_offset, max_center_offset, avg_center
     plt.savefig(plot_path)
     plt.close()
 
-def profile_waypoints(dir_path, is_collapsed, is_matching_failed):
+def profile_avg_center_offset_for_experiment(source_path, is_matching_failed_list):
+    target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
+
+    all_center_offset = []
+    for idx in range(len(target_experiment_idx_list)):
+        center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        center_offset, _, _ = aa.get_center_offset(center_offset_path)
+        all_center_offset.extend(center_offset)
+    avg = 0
+    if len(all_center_offset) != 0:
+        avg = float(sum(all_center_offset)) / float(len(all_center_offset))
+    
+    return avg
+
+def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
-    output_dir_path = 'analyzation/' + exp_title + '/trajectories'
+    output_dir_path = 'analyzation/' + output_title + '/trajectories'
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
     # Centerline
@@ -199,7 +234,7 @@ def profile_waypoints(dir_path, is_collapsed, is_matching_failed):
     plt.plot(center_line_x, center_line_y, 'k', label='Center line')
 
     # Waypoints
-    exp_title = base_path.split('/')[1]
+    exp_title = source_path.split('/')[1]
 
     center_offset_path = dir_path + '/center_offset.csv'
     waypoints = aa.get_waypoints(center_offset_path)
@@ -236,13 +271,14 @@ def profile_waypoints(dir_path, is_collapsed, is_matching_failed):
 
     plt.close()
 
-def profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list):
-    _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='all')
-    _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='collision')
-    _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='matching_failed')
+def profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list):
+    _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='all')
+    _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='normal')
+    _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='collision')
+    _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='matching_failed')
 
-def _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed_list, mode='all'):
-    available_mode = ['all', 'collision', 'matching_failed']
+def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='all'):
+    available_mode = ['all', 'normal', 'collision', 'matching_failed']
     if mode not in available_mode:
         print('[ERROR] Invalidate mode:', mode)
         exit()
@@ -250,7 +286,7 @@ def _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_
     n = len(is_collapsed_list)
 
     # Centerline
-    center_line_path = base_path + '/0/center_line.csv'
+    center_line_path = source_path + '/0/center_line.csv'
     center_line = aa.get_center_line(center_line_path)
     center_line_x = []
     center_line_y = []
@@ -267,17 +303,19 @@ def _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_
         target_experiment_idx_list = aa.get_idices_of_one_from_list(is_collapsed_list)
     elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
     else:
-        merged_indices = aa.merge_binary_list(is_collapsed_list, is_matching_failed_list)
-        target_experiment_idx_list = aa.get_idices_of_one_from_list(merged_indices, reverse=True)
+        target_experiment_idx_list = list(range(n))
+        merged_indices = aa.merge_binary_list_to_idx_list(is_collapsed_list, is_matching_failed_list)
+        for remove_target in merged_indices:
+            target_experiment_idx_list.remove(remove_target)
 
-    exp_title = base_path.split('/')[1]
+    exp_title = source_path.split('/')[1]
 
     # Waypoints
     for idx in target_experiment_idx_list:        
         exp_id = str(idx)
         label = exp_title + '_' + exp_id
 
-        center_offset_path = base_path + '/' + str(idx) + '/center_offset.csv'
+        center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
         waypoints = aa.get_waypoints(center_offset_path)
         waypoints_x = []
         waypoints_y = []
@@ -299,78 +337,171 @@ def _profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_
     plt.plot(npc1_x, npc1_y, 'k')
     plt.plot(npc2_x, npc2_y, 'k')
 
+    if len(is_collapsed_list) == 0: collision_ratio = 0
+    else: collision_ratio = sum(is_collapsed_list)/len(is_collapsed_list)
+
+    if len(is_matching_failed_list) == 0: matching_failure_ratio = 0
+    else: matching_failure_ratio = sum(is_matching_failed_list)/len(is_matching_failed_list)
+
     # Plot
-    plot_path = 'analyzation/' + exp_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
+    plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
             
     plt.xlim(-70, 40)
     plt.ylim(20,75)
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
     plt.title('Iteration: ' + str(n) \
-            + ' / Collision ratio: ' + str(sum(is_collapsed_list)/len(is_collapsed_list)) \
-            + ' / Matching failure ratio: '+ str(sum(is_matching_failed_list)/len(is_matching_failed_list)))
+            + ' / Collision ratio: ' + str(collision_ratio) \
+            + ' / Matching failure ratio: '+ str(matching_failure_ratio))
     plt.savefig(plot_path)
 
     plt.close()
 
-def profile_analyzation_info(base_path, is_collapsed_list, is_matching_failed_list):
-    exp_title = base_path.split('/')[1]
+def profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list):
+    exp_title = source_path.split('/')[1]
 
     analyzation_info = {}
     collision_index_list = aa.get_idices_of_one_from_list(is_collapsed_list)
     matching_failure_index_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
     
-    analyzation_info['collision_index'] = collision_index_list
-    analyzation_info['collision_ratio'] = len(collision_index_list)/len(is_collapsed_list)
-    analyzation_info['matching_failure_index'] = matching_failure_index_list
-    analyzation_info['matching_failure_ratio'] = len(matching_failure_index_list)/len(is_matching_failed_list)
+    if len(is_collapsed_list) == 0: collision_ratio = 0
+    else: collision_ratio = sum(is_collapsed_list)/len(is_collapsed_list)
 
-    analyzation_info_path = 'analyzation/' + exp_title + '/analyzation_info.yaml'
+    if len(is_matching_failed_list) == 0: matching_failure_ratio = 0
+    else: matching_failure_ratio = sum(is_matching_failed_list)/len(is_matching_failed_list)
+
+    analyzation_info['avg_center_offset'] = avg_center_offset
+    analyzation_info['collision_index'] = collision_index_list
+    analyzation_info['collision_ratio'] = collision_ratio
+    analyzation_info['matching_failure_index'] = matching_failure_index_list
+    analyzation_info['matching_failure_ratio'] = matching_failure_ratio
+    analyzation_info['max_miss_alignment_delay'] = max(max_miss_alignment_delay_list)
+    analyzation_info['avg_miss_alignment_delay'] = sum(avg_miss_alignment_delay_list)/len(avg_miss_alignment_delay_list)
+
+    analyzation_info_path = 'analyzation/' + output_title + '/analyzation_info.yaml'
     with open(analyzation_info_path, 'w') as f: yaml.dump(analyzation_info, f, default_flow_style=False)
 
     return
 
+def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_instance, end_instance, is_collapsed, filter=1.0):
+    exp_title = dir_path.split('/')[1]
+    exp_id = dir_path.split('/')[2]
+
+    first_node_path = dir_path + '/' + chain_info[0] + '.csv'
+    last_node_path = dir_path + '/' + chain_info[-1] + '.csv'
+    E2E_response_time, _, _ = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type='shortest')
+
+    node_response_time_list = []
+    for node in chain_info:        
+        node_path = dir_path + '/' + node + '.csv'
+        node_response_time, _, _ = aa.get_E2E_response_time(node_path, node_path, start_instance, end_instance, type='shortest')
+        node_response_time_list.append(node_response_time)
+    miss_alignment_delay = copy.deepcopy(E2E_response_time)
+
+    for node_response_time in node_response_time_list:
+        miss_alignment_delay = aa.subsctract_dicts(miss_alignment_delay, node_response_time)    
+
+    # Plot graph
+    output_dir_path = 'analyzation/' + output_title + '/' + 'miss_alignment_delay'
+    if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
+
+    x_miss_alignment_delay_data = list(miss_alignment_delay.keys()) # Instance IDs
+    y_miss_alignment_delay_data = list(miss_alignment_delay.values()) # E2E response time(ms)
+    if not is_collapsed:
+        x_miss_alignment_delay_data = x_miss_alignment_delay_data[:int(len(x_miss_alignment_delay_data) * filter)]
+        y_miss_alignment_delay_data = y_miss_alignment_delay_data[:int(len(y_miss_alignment_delay_data) * filter)]
+    plt.plot(x_miss_alignment_delay_data, y_miss_alignment_delay_data, color = 'g', label = 'Miss alignment delay')
+    max_miss_alignment_delay = max(y_miss_alignment_delay_data)
+    avg_miss_alignment_delay = sum(y_miss_alignment_delay_data)/len(y_miss_alignment_delay_data)
+
+    x_E2E_data = list(E2E_response_time.keys()) # Instance IDs
+    y_E2E_data = list(E2E_response_time.values()) # E2E response time(ms)
+    color = 'r'
+    if not is_collapsed:
+        x_E2E_data = x_E2E_data[:int(len(x_E2E_data) * filter)]
+        y_E2E_data = y_E2E_data[:int(len(y_E2E_data) * filter)]
+        color = 'b'
+    
+    plt.plot(x_E2E_data, y_E2E_data, color = color, label = 'E2E')
+
+    plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_' + 'miss_alignment_delay_plot.png'
+           
+    plt.legend()
+    plt.ylim(0, 1000)
+    plt.xlabel('Instance ID')
+    plt.ylabel('Time (ms)')
+    plt.yticks(np.arange(0,1000,100))
+    plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
+    plt.savefig(plot_path)
+    plt.close()
+
+    return max_miss_alignment_delay, avg_miss_alignment_delay
+
 if __name__ == '__main__':    
     with open('yaml/autoware_analyzer.yaml') as f:
-        configs = yaml.load(f, Loader=yaml.FullLoader)
-    
-    for experiment_title in configs['experiment_title']:
-        base_path = 'results/' + experiment_title
-        n = aa.get_number_of_files(base_path)
+        configs = yaml.load(f, Loader=yaml.FullLoader)        
+
+    chain_info = configs['node_chain']
+
+    for i in range(len(configs['experiment_title'])):
+        experiment_title = configs['experiment_title'][i]
+        output_title = configs['output_title'][i]
+        first_node = configs['first_node'][i]
+        last_node = configs['last_node'][i]
+        deadline = configs['E2E_deadline'][i]        
+
+        source_path = 'results/' + experiment_title
+
+        n = aa.get_number_of_files(source_path)
         is_collapsed_list = []
         is_matching_failed_list = []
+        max_miss_alignment_delay_list = []
+        avg_miss_alignment_delay_list = []
+
         pbar = tqdm(range(n))
-        pbar.set_description(experiment_title)
+        pbar.set_description(output_title)
+        
         for idx in pbar:
             # Collision
-            experiment_info_path = base_path + '/' + str(idx) + '/experiment_info.yaml'
+            experiment_info_path = source_path + '/' + str(idx) + '/experiment_info.yaml'
             experiment_info = aa.get_experiment_info(experiment_info_path)
             is_collapsed = experiment_info['is_collaped']
             is_collapsed_list.append(is_collapsed)
 
             # Center offset
-            center_offset_path = base_path + '/' + str(idx) + '/center_offset.csv'
+            center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
             center_offset, max_center_offset, avg_center_offset \
                 = aa.get_center_offset(center_offset_path)
             start_instance = int(list(center_offset.keys())[0])
             end_instance = int(list(center_offset.keys())[-1])
-            profile_center_offset(center_offset_path, center_offset, max_center_offset, avg_center_offset, is_collapsed)
+            profile_center_offset(center_offset_path, output_title, center_offset, max_center_offset, avg_center_offset, is_collapsed)
 
             # Check matching is failed
             is_matching_failed = aa.check_matching_is_failed(center_offset_path, start_instance, end_instance)
             is_matching_failed_list.append(is_matching_failed)
 
-            # E2E Response Time
-            response_time_path = base_path + '/' + str(idx) + '/response_time'            
-            profile_response_time(response_time_path, start_instance, end_instance, is_collapsed, is_matching_failed)
+            # E2E response time during avoidance
+            avoidance_start_instnace, avoidance_end_instance = aa.get_instance_pair_by_x(center_offset_path, 20.0, -2.0)
+            response_time_path = source_path + '/' + str(idx) + '/response_time'            
+            profile_response_time(response_time_path, output_title, first_node, last_node, avoidance_start_instnace, avoidance_end_instance, is_collapsed, is_matching_failed)
+
+            # Miss alignment delay for whole driving
+            max_miss_alignment_delay, avg_miss_alignment_delay = profile_miss_alignment_delay(response_time_path, output_title, chain_info, start_instance, end_instance, is_collapsed)
+            max_miss_alignment_delay_list.append(max_miss_alignment_delay)
+            avg_miss_alignment_delay_list.append(avg_miss_alignment_delay)
 
             # Trajectories
-            dir_path = base_path + '/' + str(idx)
-            profile_waypoints(dir_path, is_collapsed_list[idx], is_matching_failed)
+            dir_path = source_path + '/' + str(idx)
+            profile_waypoints(dir_path, output_title, is_collapsed_list[idx], is_matching_failed)            
 
-        # Profile for whole experiment
-        profile_analyzation_info(base_path, is_collapsed_list, is_matching_failed_list)
+        # Profile information from whole experiment
         is_collapsed_list = aa.convert_boolean_list_to_int_list(is_collapsed_list)        
-        is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list)        
-        profile_response_time_for_experiment(base_path, is_collapsed_list, is_matching_failed)
-        profile_waypoints_for_experiment(base_path, is_collapsed_list, is_matching_failed)
+        is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list) 
+        avg_center_offset = profile_avg_center_offset_for_experiment(source_path, is_matching_failed_list)
+        profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list)
+        
+        # Profile avoidnace response time
+        profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed, x_range=[20.0, -2.0], deadline=deadline)
+
+        # Profile wayupoints
+        profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed)

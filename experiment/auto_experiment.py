@@ -33,13 +33,14 @@ def autorunner():
             elif configs['autorunner_mode'] == 'FULL': os.system(configs[target_environment]['cubetown_full_autorunner_cmd'])
             else:
                 print('Invalidate mode:', configs['autorunner_mode'])
+            print('- Autorunner: Start Autorunner')
         else:
             continue
         if not is_experiment_running.is_set(): break
         print('- Autorunner: Unlock barrier')
         barrier.wait()
 
-    print('- Turn off Autorunner thread')
+    print('- Autorunner: Turn off Autorunner thread')
 
     return
 
@@ -108,11 +109,13 @@ def experiment_manager(main_thread_pid):
         is_experiment_running.set()
 
         # Initialize SVL scenario
+        print('- Manager: Init svl scenario')
         svl_scenario.init()
         while not is_autorunner_started.is_set():
             svl_scenario.run(timeout=1, is_init=True)
         
         # Start Experiment
+        print('- Mnager: Start Experiment')
         start_writing_position_info()
         is_collapsed, collapsed_position = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
         stop_writing_position_info()
@@ -125,6 +128,7 @@ def experiment_manager(main_thread_pid):
         kill_autorunner()
         is_autorunner_started.clear()
         is_scenario_started.clear()
+        print('- Manager: Save result')
         save_result(i, experiment_info)       
         if not is_experiment_running.is_set():
             message = 'Experiment is finished: '+configs['experiment_title']

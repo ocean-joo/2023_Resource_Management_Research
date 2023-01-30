@@ -1,5 +1,5 @@
 # Setup
-experiment_title: '230130_AVOID-BW_012_IVI_4_ED'
+experiment_title: 'test'
 target_environment: exynos # desktop / exynos 
 autorunner_mode: FULL # LKAS / FULL
 max_iteration: 100
