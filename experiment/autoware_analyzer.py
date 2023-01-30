@@ -52,6 +52,7 @@ def _profile_response_time(dir_path, output_title, first_node, last_node, start_
     plt.title('E2E during avoidance\nis_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
     plt.savefig(plot_path)
     plt.close()
+        
 
     return
 
@@ -111,8 +112,9 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
         if not is_collapsed:
             x_data = x_data[:int(len(x_data) * filter)]
             y_data = y_data[:int(len(y_data) * filter)]
-        all_E2E_response_time_list.extend(y_data)
-        max_E2E_response_time_list.append(max(y_data))        
+        if(len(y_data) > 0):
+            all_E2E_response_time_list.extend(y_data)
+            max_E2E_response_time_list.append(max(y_data))        
 
         # Validate miss deadline during avoidance
         deadline_miss_cnt = 0
@@ -120,7 +122,11 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
             if not instance in E2E_response_time.keys(): continue
             if E2E_response_time[instance] >= deadline:
                 deadline_miss_cnt = deadline_miss_cnt + 1
-        sum_of_deadilne_miss_ratio = sum_of_deadilne_miss_ratio + float(deadline_miss_cnt)/float(len(x_data))
+        
+        if len(x_data) == 0:
+            sum_of_deadilne_miss_ratio    
+        else:
+            sum_of_deadilne_miss_ratio = sum_of_deadilne_miss_ratio + float(deadline_miss_cnt)/float(len(x_data))
 
         color = 'b'
         if is_collapsed_list[idx] == 1: color = 'r' 
@@ -442,6 +448,7 @@ if __name__ == '__main__':
         configs = yaml.load(f, Loader=yaml.FullLoader)        
 
     chain_info = configs['node_chain']
+    avoidance_x_range = configs['avoidnace_x_range']
 
     for i in range(len(configs['experiment_title'])):
         experiment_title = configs['experiment_title'][i]
@@ -481,7 +488,7 @@ if __name__ == '__main__':
             is_matching_failed_list.append(is_matching_failed)
 
             # E2E response time during avoidance
-            avoidance_start_instnace, avoidance_end_instance = aa.get_instance_pair_by_x(center_offset_path, 20.0, -2.0)
+            avoidance_start_instnace, avoidance_end_instance = aa.get_instance_pair_by_x(center_offset_path, avoidance_x_range[0], avoidance_x_range[1])
             response_time_path = source_path + '/' + str(idx) + '/response_time'            
             profile_response_time(response_time_path, output_title, first_node, last_node, avoidance_start_instnace, avoidance_end_instance, is_collapsed, is_matching_failed)
 
@@ -493,7 +500,7 @@ if __name__ == '__main__':
             # Trajectories
             dir_path = source_path + '/' + str(idx)
             profile_waypoints(dir_path, output_title, is_collapsed_list[idx], is_matching_failed)            
-
+        
         # Profile information from whole experiment
         is_collapsed_list = aa.convert_boolean_list_to_int_list(is_collapsed_list)        
         is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list) 
@@ -501,7 +508,7 @@ if __name__ == '__main__':
         profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list)
         
         # Profile avoidnace response time
-        profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed, x_range=[20.0, -2.0], deadline=deadline)
+        profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed, x_range=avoidance_x_range, deadline=deadline)
 
         # Profile wayupoints
         profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed)

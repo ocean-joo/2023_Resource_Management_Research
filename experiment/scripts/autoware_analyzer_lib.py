@@ -46,17 +46,22 @@ def get_instance_pair_by_x(center_offset_path, start_x, end_x):
     output_end_instance = -1.0
     with open(center_offset_path) as f:
         reader = csv.reader(f)
-
+        filtered_instance_list = []
         for i, line in enumerate(reader):
             if i == 0: continue
             instance = float(line[4])
             x = float(line[5])
             if start_x > end_x:
-                if x < start_x and output_start_instance < 0: output_start_instance = instance
-                if x < end_x and output_end_instance < 0: output_end_instance = instance
+                if x <= start_x and x >= end_x: filtered_instance_list.append(instance)
             else:
-                if x > start_x and output_start_instance < 0: output_start_instance = instance
-                if x > end_x and output_end_instance < 0: output_end_instance = instance
+                if x >= start_x and x <= end_x: filtered_instance_list.append(instance)
+        if len(filtered_instance_list) == 0:
+            output_start_instance = -1
+            output_end_instance = -1
+        else:
+            output_start_instance = min(filtered_instance_list)
+            output_end_instance = max(filtered_instance_list)
+
     # print(output_start_instance, output_end_instance)
     return output_start_instance, output_end_instance    
 
@@ -101,22 +106,26 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
 
     keys = list(E2E_response_time.keys())
 
-    does_start_instance_found = False    
+    does_start_instance_found = False
     for key in keys:
-        if key > E2E_start_instance and not does_start_instance_found:
+        if key >= E2E_start_instance and does_start_instance_found == False:
             E2E_start_instance = key
             does_start_instance_found = True
-            continue             
-        E2E_end_instance = key               
-        if key > E2E_end_instance and E2E_end_instance > 0.0: break        
+            continue                       
+        if key >= E2E_end_instance and E2E_end_instance > 0.0: 
+            E2E_end_instance = key
+            break        
     remove_target = []
     for k in E2E_response_time:
-        if k < E2E_start_instance or k > E2E_end_instance or k not in keys: remove_target.append(k)        
-    
-    for k in remove_target: E2E_response_time.pop(k, None)
+        if k < E2E_start_instance or k > E2E_end_instance or k not in keys: remove_target.append(k)
 
-    avg_E2E_response_time = get_dict_avg(E2E_response_time)
-    max_E2E_response_time = get_dict_max(E2E_response_time)
+    for k in remove_target: E2E_response_time.pop(k, None)
+    if len(E2E_response_time) == 0:
+        avg_E2E_response_time = 0.0    
+        max_E2E_response_time = 0.0
+    else:
+        avg_E2E_response_time = get_dict_avg(E2E_response_time)
+        max_E2E_response_time = get_dict_max(E2E_response_time)
 
     return E2E_response_time, max_E2E_response_time, avg_E2E_response_time
 
