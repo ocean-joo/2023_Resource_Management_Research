@@ -1,12 +1,6 @@
-import os
+import autoware_analyzer_lib as aa
 
-output = str(os.popen('ps -ax | grep cube'))
-output = output.split('\n')
-for line in output:
-    for v in line.split(' '):
-        try:
-            pid = str(int(v))
-            os.system('kill -9 '+pid)
-        except:
-            continue
+a = {'a':10, 'b':20, 'c': 30}
+b = {'a':5, 'b':6, 'c': 7}
 
+print(aa.subsctract_dicts(a, b))

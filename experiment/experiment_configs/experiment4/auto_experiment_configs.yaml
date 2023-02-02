@@ -1,8 +1,8 @@
 # Setup
-experiment_title: 'test'
-target_environment: desktop # desktop / exynos 
+experiment_title: '230130_AVOID-BW_012_IVI_4_ED'
+target_environment: exynos # desktop / exynos 
 autorunner_mode: FULL # LKAS / FULL
-max_iteration: 5
+max_iteration: 100
 duration: 20 # sec
 svl_cfg_path: /home/hayeonp/git/2023_Resource_Management_Research/experiment/yaml/svl_scenario.yaml
 

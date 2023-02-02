@@ -14,10 +14,17 @@ def save_dict(data, path):
 
 def subsctract_dicts(data1, data2):
     output = {}
+    remove_targets = []
     keys = data1.keys()
     for k in keys:
-        if k not in data2: continue
+        if k not in data2: 
+            remove_targets.append(k)
+            continue
         output[k] = data1[k] - data2[k]
+    
+    for remove_target in remove_targets:
+        output.pop(remove_target)
+
     return output
 
 def get_dict_avg(data):
@@ -44,13 +51,16 @@ def read_topics_from_bag(rosbag_path, topic_name):
 def get_instance_pair_by_x(center_offset_path, start_x, end_x):
     output_start_instance = -1.0
     output_end_instance = -1.0
+    column_idx = {}
     with open(center_offset_path) as f:
         reader = csv.reader(f)
         filtered_instance_list = []
         for i, line in enumerate(reader):
-            if i == 0: continue
-            instance = float(line[4])
-            x = float(line[5])
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            instance = float(line[column_idx['instance']])
+            x = float(line[column_idx['x']])
             if start_x > end_x:
                 if x <= start_x and x >= end_x: filtered_instance_list.append(instance)
             else:
@@ -73,15 +83,17 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
     instance_info = {}
     start_instance = -1
     E2E_response_time = {}
+    column_idx = {}
 
     # E2E Response Time
     with open(last_node_path) as f_last:
         reader = csv.reader(f_last)        
         for i, row in enumerate(reader):            
-            if i == 0: continue # Skip first row
-
-            end_time = float(row[3])
-            instance_id = int(row[4])
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(row)
+                continue
+            end_time = float(row[column_idx['end']])
+            instance_id = int(row[column_idx['instance']])
             if type == 'shortest':
                 if instance_id in instance_info: continue
             if i == 1: start_instance = instance_id         
@@ -90,11 +102,12 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
     with open (first_node_path) as f_start:        
         reader = csv.reader(f_start)
         for i, row in enumerate(reader):
-            
-            if i == 0: continue # Skip first row            
-            
-            start_time = float(row[2])
-            instance_id = int(row[4])
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(row)
+                continue       
+
+            start_time = float(row[column_idx['start']])
+            instance_id = int(row[column_idx['instance']])
             if instance_id < start_instance: continue
             if instance_id not in instance_info: continue
             if type == 'shortest':
@@ -138,13 +151,16 @@ def start_rosbag_record(topic_names):
     return
 
 def get_center_offset(center_offset_path):
+    column_idx = {}
     center_offset = {}
     with open(center_offset_path) as f:
         reader = csv.reader(f)
         for i, line in enumerate(reader):
-            if i == 0: continue
-            instance = float(line[4])
-            center_offset[instance] = abs(float(line[2]))
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            instance = float(line[column_idx['instance']])
+            center_offset[instance] = abs(float(line[column_idx['center_offset']]))
 
     max_center_offset = get_dict_max(center_offset)
     avg_center_offset = get_dict_avg(center_offset)
@@ -153,24 +169,30 @@ def get_center_offset(center_offset_path):
 
 def get_waypoints(center_offset_path):
     waypoints = []
+    column_idx = {}
     with open(center_offset_path) as f:
         reader = csv.reader(f)
         for i, line in enumerate(reader):
-            if i == 0: continue
-            pose_x = float(line[5])
-            pose_y = float(line[6])
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            pose_x = float(line[column_idx['x']])
+            pose_y = float(line[column_idx['y']])
             waypoints.append([pose_x,pose_y])
     
     return waypoints
 
 def get_center_line(center_line_path):
+    column_idx = {}
     center_line = []
     with open(center_line_path) as f:
         reader = csv.reader(f)
         for i, line in enumerate(reader):
-            if i == 0: continue
-            pose_x = float(line[0])
-            pose_y = float(line[1])
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            pose_x = float(line[column_idx['center_x']])
+            pose_y = float(line[column_idx['center_y']])
             center_line.append([pose_x,pose_y])
     
     return center_line
@@ -200,12 +222,15 @@ def get_number_of_files(path):
     return len(output) - 1
 
 def check_matching_is_failed(center_offset_path, start_instance, end_instance):    
+    column_idx = {}
     with open(center_offset_path) as f:
         reader = csv.reader(f)
         for i, line in enumerate(reader):
-            if i == 0: continue
-            instance = int(line[4])
-            ndt_score = float(line[7])
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            instance = int(line[column_idx['instance']])
+            ndt_score = float(line[column_idx['ndt_score']])
             if instance < start_instance: continue
             if ndt_score > 2.0: return True
             if instance > end_instance: break
@@ -232,4 +257,8 @@ def merge_binary_list_to_idx_list(a, b):
         if a[i] == 1 or b[i] == 1: output.append(i)
     return output
     
-
+def get_column_idx_from_csv(line):
+    output = {}
+    for i, v in enumerate(line):
+        output[v] = i
+    return output

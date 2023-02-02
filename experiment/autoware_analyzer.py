@@ -94,6 +94,7 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
         
     all_E2E_response_time_list = []
     max_E2E_response_time_list = []
+    leakage_ratio_list = []
     x_data = []
     for idx in target_experiment_idx_list:
         is_collapsed = is_collapsed_list[idx]        
@@ -106,6 +107,15 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
 
         E2E_response_time, _, _ \
             = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type)        
+
+        # Profile instance leakge ratio
+        instance_list = list(E2E_response_time.keys())
+        leakage_cnt = 0
+        for i, instance in enumerate(instance_list):
+            if i == 0: continue
+            if instance_list[i] - instance_list[i-1] != 1: leakage_cnt = leakage_cnt + 1     
+        leakage_ratio = float(leakage_cnt) / float(instance_list[-1] - instance_list[0])
+        leakage_ratio_list.append(leakage_ratio)
 
         x_data = list(E2E_response_time.keys()) # Instance IDs
         y_data = list(E2E_response_time.values()) # E2E response time(ms)
@@ -152,11 +162,17 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
     E2E_response_time_info['avg'] = avg_E2E_response_time
     E2E_response_time_info['var'] = var_E2E_response_time
     E2E_response_time_info['avg_max'] = avg_max_E2E_response_time    
-
+    
     if collision_cnt != 0:
         E2E_response_time_info['avg_miss_ratio'] =  float(sum_of_deadilne_miss_ratio) / float(len(target_experiment_idx_list))
     else:
-        E2E_response_time_info['avg_miss_ratio'] = 0.0
+        E2E_response_time_info['avg_miss_ratio'] = 0.0    
+
+    if len(leakage_ratio_list) == 0:
+        E2E_response_time_info['avg_leakage_ratio'] = 0.0
+    else:
+        E2E_response_time_info['avg_leakage_ratio'] = float(sum(leakage_ratio_list)) / float(len(target_experiment_idx_list))
+
     with open(E2E_response_time_info_path, 'w') as f: yaml.dump(E2E_response_time_info, f, default_flow_style=False)
 
     if len(is_collapsed_list) == 0: collision_ratio = 0
@@ -406,7 +422,7 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
 
     for node_response_time in node_response_time_list:
         miss_alignment_delay = aa.subsctract_dicts(miss_alignment_delay, node_response_time)    
-
+    
     # Plot graph
     output_dir_path = 'analyzation/' + output_title + '/' + 'miss_alignment_delay'
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
