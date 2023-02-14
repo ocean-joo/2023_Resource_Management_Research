@@ -1,10 +1,13 @@
+
 import yaml
 import matplotlib.pyplot as plt
+
 import os
 import scripts.autoware_analyzer_lib as aa
 import numpy as np
 import copy
 from tqdm import tqdm
+
 
 configs = {}
 
@@ -272,13 +275,16 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     
     plt.plot(waypoints_x, waypoints_y, color, linewidth=1.0)
 
-    # Objects
-    npc1_x = [6, 6, -1, -1, 6]
-    npc1_y = [51, 48, 48, 51, 51]
-    npc2_x = [6, 6, -1, -1, 6]
-    npc2_y = [55, 52, 52, 55, 55]
-    plt.plot(npc1_x, npc1_y, 'k')
-    plt.plot(npc2_x, npc2_y, 'k')
+    if configs['simulator'] == 'svl':
+        # Objects
+        npc1_x = [6, 6, -1, -1, 6]
+        npc1_y = [51, 48, 48, 51, 51]
+        npc2_x = [6, 6, -1, -1, 6]
+        npc2_y = [55, 52, 52, 55, 55]
+        plt.plot(npc1_x, npc1_y, 'k')
+        plt.plot(npc2_x, npc2_y, 'k')
+    elif configs['simulator'] == 'carla':
+        pass
 
     # Plot
     plot_path = output_dir_path + '/' + exp_title + '_' + exp_id + '_waypoints.png'
@@ -351,13 +357,17 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
 
         plt.plot(waypoints_x, waypoints_y, color, linewidth=1.0)
 
-    # Objects
-    npc1_x = [6, 6, -1, -1, 6]
-    npc1_y = [51, 48, 48, 51, 51]
-    npc2_x = [6, 6, -1, -1, 6]
-    npc2_y = [55, 52, 52, 55, 55]
-    plt.plot(npc1_x, npc1_y, 'k')
-    plt.plot(npc2_x, npc2_y, 'k')
+
+    if configs['simulator'] == 'svl':
+        # Objects
+        npc1_x = [6, 6, -1, -1, 6]
+        npc1_y = [51, 48, 48, 51, 51]
+        npc2_x = [6, 6, -1, -1, 6]
+        npc2_y = [55, 52, 52, 55, 55]
+        plt.plot(npc1_x, npc1_y, 'k')
+        plt.plot(npc2_x, npc2_y, 'k')
+    elif configs['simulator'] == 'carla':
+        pass
 
     if len(is_collapsed_list) == 0: collision_ratio = 0
     else: collision_ratio = sum(is_collapsed_list)/len(is_collapsed_list)
@@ -367,9 +377,12 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
 
     # Plot
     plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
-            
-    plt.xlim(-70, 40)
-    plt.ylim(20,75)
+    
+    if configs['simulator'] == 'svl':
+        plt.xlim(-70, 40)
+        plt.ylim(20,75)
+    elif configs['simulator'] == 'carla':
+        pass
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
     plt.title('Iteration: ' + str(n) \
@@ -459,9 +472,9 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
 
     return max_miss_alignment_delay, avg_miss_alignment_delay
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     with open('yaml/autoware_analyzer.yaml') as f:
-        configs = yaml.load(f, Loader=yaml.FullLoader)        
+        configs = yaml.load(f, Loader=yaml.FullLoader)
 
     chain_info = configs['node_chain']
     avoidance_x_range = configs['avoidnace_x_range']
@@ -480,7 +493,6 @@ if __name__ == '__main__':
         is_matching_failed_list = []
         max_miss_alignment_delay_list = []
         avg_miss_alignment_delay_list = []
-
         pbar = tqdm(range(n))
         pbar.set_description(output_title)
         
@@ -522,9 +534,7 @@ if __name__ == '__main__':
         is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list) 
         avg_center_offset = profile_avg_center_offset_for_experiment(source_path, is_matching_failed_list)
         profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list)
-        
         # Profile avoidnace response time
         profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed, x_range=avoidance_x_range, deadline=deadline)
-
         # Profile wayupoints
         profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed)

@@ -1,6 +1,6 @@
 import csv
 import yaml
-import rosbag
+# import rosbag
 import math
 import os
 import signal
@@ -40,6 +40,7 @@ def get_dict_max(data):
         if v > max: max = v
     return max
 
+'''
 def read_topics_from_bag(rosbag_path, topic_name):
     print(rosbag_path)
     bag = rosbag.Bag(rosbag_path)
@@ -47,6 +48,7 @@ def read_topics_from_bag(rosbag_path, topic_name):
     for _, msg, _ in bag.read_messages():        
         output.append(msg)
     return output
+'''
 
 def get_instance_pair_by_x(center_offset_path, start_x, end_x):
     output_start_instance = -1.0
@@ -142,6 +144,7 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
 
     return E2E_response_time, max_E2E_response_time, avg_E2E_response_time
 
+'''
 def start_rosbag_record(topic_names):   
     topic_str = '' 
     for topic in topic_names:
@@ -149,6 +152,7 @@ def start_rosbag_record(topic_names):
 
     subprocess.Popen('source /opt/ros/melodic/setup.bash && rosbag record -O output' + topic_str, shell=True, executable='/bin/bash')
     return
+'''
 
 def get_center_offset(center_offset_path):
     column_idx = {}

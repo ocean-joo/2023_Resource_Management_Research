@@ -7,8 +7,8 @@ import yaml
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistStamped
 from autoware_msgs.msg import NDTStat
-import slack_library
-import svl_scenario as svl
+import scripts.slack_library as slack_library
+import scripts.svl_scenario as svl
 import signal
 
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
 
     slack_webhook = slack_library.get_slack_webhook()
 
-    with open('yaml/auto_experiment_configs.yaml') as f:
+    with open('yaml/svl_auto_experiment_configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
     if os.path.exists('results/'+configs['experiment_title']):
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     manager_thread = threading.Thread(target=experiment_manager, args=(main_thread_pid, ))    
     manager_thread.start()
 
-    rospy.init_node('svl_validation', anonymous=True)
+    rospy.init_node('svl_auto_experiment', anonymous=True)
     rospy.Subscriber('imu_raw', Imu, imu_cb)
     rospy.Subscriber('twist_cmd', TwistStamped, twist_cmd_cb)
     rospy.spin()

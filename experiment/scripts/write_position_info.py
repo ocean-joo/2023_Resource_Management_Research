@@ -90,7 +90,6 @@ def write_position_info():
         prev_dis = 0
         while not rospy.is_shutdown():
             gnss_msg = rospy.wait_for_message('/gnss_pose', PoseStamped, timeout=None)
-            state_msg = rospy.wait_for_message('/behavior_state', MarkerArray, timeout=None)
             ndt_stat_msg = rospy.wait_for_message('/ndt_stat', NDTStat, timeout=None)
             twist_msg = rospy.wait_for_message('/rubis_twist_cmd', TwistStamped, timeout=None)
 
@@ -112,10 +111,7 @@ def write_position_info():
                 min_dis *= 1
             prev_dis = min_dis
 
-            if state_msg.markers[0].text == '(0)LKAS':
-                state_text = 'Backup'
-            else:
-                state_text = 'Normal'
+            state_text = 'None'
 
             center_offset_wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance, pose_x, pose_y, str(ndt_stat_msg.score)])    
     f.close()

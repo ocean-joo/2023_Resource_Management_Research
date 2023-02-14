@@ -1,11 +1,13 @@
-avoidnace_x_range: [20.0, 3.0]
+simulator: 'carla' # carla or svl
+
+avoidnace_x_range: [-2000.0, 3000.0]
 
 # # The node chain for LKAS
 # node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
 
 
-experiment_title: ['230201_QUEUE-SIZE-1_AVOID_012']
-output_title:     ['230201_QUEUE-SIZE-1_AVOID_012']
+experiment_title: ['test']
+output_title:     ['test']
 first_node:       ['lidar_republisher']
 last_node:        ['twist_gate']
 E2E_deadline:     [400.0]
@@ -15,3 +17,5 @@ node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pur
 
 # # The node chain for detection
 # node_chain: ['lidar_republisher', 'ray_ground_filter', 'lidar_euclidean_cluster_detect', 'op_motion_predictor']
+
+# 
