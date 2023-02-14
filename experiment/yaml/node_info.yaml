@@ -24,8 +24,7 @@ autoware_nodes:
     cluster_detect_visualization_center,
     lidar_euclidean_cluster_detect_center,
     lidar_republisher,
-    map_to_mobility,
-    ndt_matching,
+    map_to_mobility,    
     op_behavior_selector,
     op_common_params,
     op_global_planner,
@@ -42,5 +41,7 @@ autoware_nodes:
     twist_gate,
     vector_map_loader,
     voxel_grid_filter,
-    world_to_map
+    world_to_map,
+    driver_progress_logger,
+    ndt_matching
   ]

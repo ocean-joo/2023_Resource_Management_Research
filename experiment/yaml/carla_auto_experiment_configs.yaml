@@ -1,9 +1,9 @@
 # Setup
 experiment_title: test
-target_environment: desktop # desktop / exynos 
-autorunner_mode: LKAS # LKAS / FULL
-max_iteration: 3
-duration: 2 # sec
+target_environment: exynos # desktop / exynos 
+autorunner_mode: FULL # LKAS / FULL
+max_iteration: 5
+duration: 40 # sec
 
 # Commands
 common:

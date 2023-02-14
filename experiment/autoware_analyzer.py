@@ -88,13 +88,13 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
     target_experiment_idx_list = []
     if mode == 'all': target_experiment_idx_list = range(n)
     elif mode == 'collision': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_collapsed_list)
-    elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
+    elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)        
     elif mode == 'normal':
         target_experiment_idx_list = list(range(n))
-        merged_indices = aa.merge_binary_list_to_idx_list(is_collapsed_list, is_matching_failed_list)
+        merged_indices = aa.merge_binary_list_to_idx_list(is_collapsed_list, is_matching_failed_list)        
         for remove_target in merged_indices:
             target_experiment_idx_list.remove(remove_target)
-        
+    
     all_E2E_response_time_list = []
     max_E2E_response_time_list = []
     leakage_ratio_list = []
@@ -166,7 +166,7 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
     E2E_response_time_info['var'] = var_E2E_response_time
     E2E_response_time_info['avg_max'] = avg_max_E2E_response_time    
     
-    if collision_cnt != 0:
+    if collision_cnt != 0 and len(target_experiment_idx_list) != 0:
         E2E_response_time_info['avg_miss_ratio'] =  float(sum_of_deadilne_miss_ratio) / float(len(target_experiment_idx_list))
     else:
         E2E_response_time_info['avg_miss_ratio'] = 0.0    
@@ -331,7 +331,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
         target_experiment_idx_list = aa.get_idices_of_one_from_list(is_collapsed_list)
     elif mode == 'matching_failed': target_experiment_idx_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
     else:
-        target_experiment_idx_list = list(range(n))
+        target_experiment_idx_list = list(range(n))        
         merged_indices = aa.merge_binary_list_to_idx_list(is_collapsed_list, is_matching_failed_list)
         for remove_target in merged_indices:
             target_experiment_idx_list.remove(remove_target)

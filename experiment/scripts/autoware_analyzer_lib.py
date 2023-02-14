@@ -236,7 +236,7 @@ def check_matching_is_failed(center_offset_path, start_instance, end_instance):
             instance = int(line[column_idx['instance']])
             ndt_score = float(line[column_idx['ndt_score']])
             if instance < start_instance: continue
-            if ndt_score > 2.0: return True
+            if ndt_score > 20.0: return True
             if instance > end_instance: break
             
     return False
