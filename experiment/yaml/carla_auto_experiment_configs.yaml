@@ -3,24 +3,25 @@ experiment_title: test
 target_environment: desktop # desktop / exynos 
 autorunner_mode: LKAS # LKAS / FULL
 max_iteration: 3
-duration: 10 # sec
+duration: 2 # sec
 
 # Commands
 common:
   carla_simulator_cmd: /home/hayeonp/carla_simulator/CARLA_0.9.13/CarlaUE4.sh -RenderOffScreen
-  carla_autoware_cmd: /home/hayeonp/git/2023_Resource_Management_Research/experiment/scripts/carla_autoware.sh
+  carla_autoware_cmd: /home/hayeonp/git/2023_Resource_Management_Research/experiment/scripts/carla_autoware.sh  
 
 desktop:
   carla_lkas_autorunner_cmd: roslaunch rubis_autorunner carla_lkas_autorunner.launch
   carla_full_autorunner_cmd: roslaunch rubis_autorunner carla_full_autorunner.launch
-  roscore_cmd: roscore
   termination_cmd: ./scripts/terminate_desktop.sh
   response_time_path: /home/hayeonp/Documents/profiling/response_time
+  autoawre_termination_cmd: ./scripts/terminate_desktop.sh
 
 exynos:  
+  ssh_cmd: ssh root@192.168.0.8
   rosbridge_cmd: roslaunch /home/hayeonp/rosbridge_websocket.launch
   svl_scenario_cmd: python3 /home/hayeonp/git/lgsvl-demo/CubetownBase.py
   carla_lkas_autorunner_cmd: ssh root@192.168.0.8 "lxc-attach -n linux1 -- /home/root/scripts/carla_lkas_autorunner.sh"
   carla_full_autorunner_cmd: ssh root@192.168.0.8 "lxc-attach -n linux1 -- /home/root/scripts/carla_full_autorunner.sh"
-  termination_cmd: ./scripts/terminate_exynos.sh
   response_time_path: /var/lib/lxc/linux1/rootfs/home/root/Documents/profiling/response_time
+  autoware_termination_cmd: ./scripts/terminate_exynos.sh

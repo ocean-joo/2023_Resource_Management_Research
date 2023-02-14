@@ -4,7 +4,7 @@ carla_nodes:
     carla_ackermann_control_ego_vehicle,
     carla_current_velocity_publisher,
     carla_manual_control_ego_vehicle,
-    carla_ros_bridge
+    carla_ros_bridge,
     carla_spawn_objects,
     carla_to_autoware_vehicle_status,  
     carla_to_autoware_waypoints,

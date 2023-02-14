@@ -7,7 +7,6 @@ import yaml
 from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import TwistStamped
 from carla_msgs.msg import CarlaCollisionEvent
-from rosgraph_msgs.msg import Log
 import scripts.slack_library as slack_library
 import signal
 from multiprocessing import Process
@@ -32,14 +31,14 @@ def get_ps_info_with_grep(grep_str):
         ps_info_list.append(ps_info)
     return ps_info_list
 
-def kill_processes_by_ps_info(ps_info):    
+def kill_processes_by_ps_info(ps_info, prefix=''):    
     if len(ps_info) == 0: return
     pid = ps_info[0]
     
-    subprocess.Popen('kill -9 ' + pid, shell=True, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    os.system(prefix + ' '+ 'kill -9 ' + pid)
     return
 
-def kill_processes_by_ps_info_list(ps_info_list):
+def kill_processes_by_ps_info_list(ps_info_list, prefix=''):
     for ps_info in ps_info_list:
         kill_processes_by_ps_info(ps_info)
     return
@@ -60,6 +59,7 @@ def carla_autoware():
     os.system(configs['common']['carla_autoware_cmd'])
 
 def autorunner():
+    print(configs[target_environment]['carla_lkas_autorunner_cmd'])
     if configs['autorunner_mode'] == 'LKAS': os.system(configs[target_environment]['carla_lkas_autorunner_cmd'])
     elif configs['autorunner_mode'] == 'FULL': os.system(configs[target_environment]['carla_full_autorunner_cmd'])
     else: print('Invalidate mode:', configs['autorunner_mode'])
@@ -88,9 +88,23 @@ def save_result(iter, experiment_info):
 
     return
 
+def kill_carla_nodes():
+    for node in node_info['carla_nodes']:
+        _output = str(os.popen('rosnode list').read()).split('\n')        
+        for line in _output:
+            if node in line: os.system('rosnode kill '+line)
+    while True:
+        time.sleep(1)
+        _output = str(os.popen('rosnode list').read())
+        if 'points_relay' not in _output: break
+    return
+
+
 def kill_autorunner():
-    p = subprocess.Popen(configs[target_environment]['termination_cmd'], shell=True, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    p.wait()
+    for node in node_info['autoware_nodes']:
+        _output = str(os.popen('rosnode list').read()).split('\n')        
+        for line in _output:
+            if node in line: os.system('rosnode kill '+line)
     
     while True:
         time.sleep(1)
@@ -98,35 +112,8 @@ def kill_autorunner():
         if 'ndt_matching' not in _output: break
     return
 
-# def kill_carla_autoware():
-#     _output = str(os.popen('rosnode list | grep carla').read()).split('\n')    
-#     for line in _output:
-#         if line == '': continue
-#         if line == 'carla_auto_experiment': continue
-#         if line in str(os.popen('rosnode list | grep carla').read()).split('\n'):
-#             os.system('rosnode kill '+line)
-    
-#     _output = str(os.popen('rosnode list | grep ego_vehicle').read()).split('\n')    
-#     for line in _output:
-#         if line == '': continue
-#         if line in str(os.popen('rosnode list | grep ego_vehicle').read()).split('\n'):
-#             os.system('rosnode kill '+line)
-
-#     return
-
-def kill_carla_simulator(carla_simulator_pid_list):
-    for pid in carla_simulator_pid_list:
-            os.system('kill -9 '+pid)
-
-    return
-
-def experiment_manager(main_thread_pid):
+def experiment_manager():    
     for i in range(configs['max_iteration']):
-        # print('- Manager: Start roscore')
-        # # Start roscore
-        # roscore_process = Process(target=roscore)
-        # roscore_process.start()
-            
         while not check_roscore_starts():
             print('# Wait roscore')
             time.sleep(0.5)
@@ -176,27 +163,14 @@ def experiment_manager(main_thread_pid):
             time.sleep(1)
         stop_writing_position_info()  
 
-        # Kill carla nodes
-        for node in node_info['carla_nodes']:
-            ps_info_list = get_ps_info_with_grep(node)    
-            kill_processes_by_ps_info_list(ps_info_list)
-        # Kill autoware nodes
-        for node in node_info['autoware_nodes']:
-            ps_info_list = get_ps_info_with_grep(node)    
-            kill_processes_by_ps_info_list(ps_info_list)
+        # Kill nodes
+        kill_carla_nodes()
+        kill_autorunner()
         # Kil carla simulator
         carla_ps_info_list = get_ps_info_with_grep('carla')
         for line in carla_ps_info_list:
             if 'carla_auto_experiment.py' in line: continue
-            kill_processes_by_ps_info(line)
-
-        # ros_ps_info_list = get_ps_info_with_grep('ros')
-        # kill_processes_by_ps_info_list(ros_ps_info_list)
-        
-
-        # os.system('rosnode kill -a')      
-        # kill_carla_autoware()     
-        # kill_carla_simulator(carla_simulator_pid_list)        
+            kill_processes_by_ps_info(line)   
         
         autorunner_process.join()
         carla_autoware_process.join()
@@ -213,8 +187,10 @@ def experiment_manager(main_thread_pid):
     message = '- Manager: Experiment is finished: '+configs['experiment_title']
     payload = {"text": message}
     slack_library.send_slack_message(payload, slack_webhook)
-
-    return os.kill(main_thread_pid, signal.SIGQUIT)
+    
+    os.system('rosnode kill auto_experiment')
+    
+    return
 
 def start_writing_position_info():
     subprocess.Popen('python3 scripts/write_position_info.py', shell=True, executable='/bin/bash')
@@ -246,8 +222,6 @@ def carla_collision_event_cb(msg):
     return
 
 if __name__ == '__main__':
-    main_thread_pid = os.getpid()
-
     slack_webhook = slack_library.get_slack_webhook()
 
     with open('yaml/carla_auto_experiment_configs.yaml') as f:
@@ -272,7 +246,7 @@ if __name__ == '__main__':
         print('[Error] Invalid target environment')
         exit()
     
-    manager_thread = threading.Thread(target=experiment_manager, args=(main_thread_pid, ))    
+    manager_thread = threading.Thread(target=experiment_manager)
     manager_thread.start()
 
     rospy.init_node('auto_experiment')
