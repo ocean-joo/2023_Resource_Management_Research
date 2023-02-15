@@ -21,9 +21,10 @@ def subsctract_dicts(data1, data2):
             remove_targets.append(k)
             continue
         output[k] = data1[k] - data2[k]
-    
+        
     for remove_target in remove_targets:
-        output.pop(remove_target)
+        if remove_target in output:
+            output.pop(remove_target)
 
     return output
 
@@ -31,7 +32,9 @@ def get_dict_avg(data):
     sum = 0.0
     for key in data:
         sum = sum + float(data[key])
-    return sum / float(len(data))
+    output = 0
+    if len(data) != 0: output = sum / float(len(data))
+    return output
 
 def get_dict_max(data):
     max = 0.0
@@ -49,8 +52,7 @@ def read_topics_from_bag(rosbag_path, topic_name):
         output.append(msg)
     return output
 '''
-
-def get_instance_pair_by_x(center_offset_path, start_x, end_x):
+def get_instance_pair(center_offset_path, start_x, end_x, simulator):
     output_start_instance = -1.0
     output_end_instance = -1.0
     column_idx = {}
@@ -62,7 +64,11 @@ def get_instance_pair_by_x(center_offset_path, start_x, end_x):
                 column_idx = get_column_idx_from_csv(line)
                 continue
             instance = float(line[column_idx['instance']])
-            x = float(line[column_idx['x']])
+            if simulator == 'old': x = float(line[column_idx['x']])
+            elif simulator == 'carla': x = float(line[column_idx['gnss_pose_x']])
+            else:
+                print('# Wrong simulator!')
+                exit()
             if start_x > end_x:
                 if x <= start_x and x >= end_x: filtered_instance_list.append(instance)
             else:
@@ -171,7 +177,7 @@ def get_center_offset(center_offset_path):
 
     return center_offset, max_center_offset, avg_center_offset
 
-def get_waypoints(center_offset_path):
+def get_waypoints(center_offset_path, simulator):
     waypoints = []
     column_idx = {}
     with open(center_offset_path) as f:
@@ -180,8 +186,15 @@ def get_waypoints(center_offset_path):
             if i == 0: 
                 column_idx = get_column_idx_from_csv(line)
                 continue
-            pose_x = float(line[column_idx['x']])
-            pose_y = float(line[column_idx['y']])
+            if simulator == 'old':
+                pose_x = float(line[column_idx['x']])
+                pose_y = float(line[column_idx['y']])
+            elif simulator == 'carla':
+                pose_x = float(line[column_idx['gnss_pose_x']])
+                pose_y = float(line[column_idx['gnss_pose_y']])
+            else:
+                print('# Wrong simulator!')
+                exit()
             waypoints.append([pose_x,pose_y])
     
     return waypoints
@@ -225,19 +238,42 @@ def get_number_of_files(path):
     output = output.split('\n')
     return len(output) - 1
 
-def check_matching_is_failed(center_offset_path, start_instance, end_instance):    
-    column_idx = {}
-    with open(center_offset_path) as f:
-        reader = csv.reader(f)
-        for i, line in enumerate(reader):
-            if i == 0: 
-                column_idx = get_column_idx_from_csv(line)
-                continue
-            instance = int(line[column_idx['instance']])
-            ndt_score = float(line[column_idx['ndt_score']])
-            if instance < start_instance: continue
-            if ndt_score > 20.0: return True
-            if instance > end_instance: break
+def check_matching_is_failed(center_offset_path, start_instance, end_instance, simulator):    
+    if simulator == 'old':
+        column_idx = {}
+        with open(center_offset_path) as f:
+            reader = csv.reader(f)
+            for i, line in enumerate(reader):
+                if i == 0: 
+                    column_idx = get_column_idx_from_csv(line)
+                    continue
+                instance = int(line[column_idx['instance']])
+                ndt_score = float(line[column_idx['ndt_score']])
+                if instance < start_instance: continue
+                if ndt_score > 1.5: return True
+                if instance > end_instance: break
+    elif simulator == 'carla':
+        column_idx = {}
+        with open(center_offset_path) as f:
+            reader = csv.reader(f)
+            for i, line in enumerate(reader):
+                if i == 0: 
+                    column_idx = get_column_idx_from_csv(line)
+                    continue
+                instance = int(line[column_idx['instance']])
+                ndt_score = float(line[column_idx['ndt_score']])
+                gnss_pose_x = float(line[column_idx['gnss_pose_x']])
+                gnss_pose_y = float(line[column_idx['gnss_pose_y']])
+                current_pose_x = float(line[column_idx['current_pose_x']])
+                current_pose_y = float(line[column_idx['current_pose_y']])
+
+                if instance < start_instance: continue
+                pose_diff = math.sqrt(math.pow(gnss_pose_x - current_pose_x,2) + math.pow(gnss_pose_y - current_pose_y,2))
+                if pose_diff > 3: return True
+                if instance > end_instance: break
+    else:
+        print('# Wrong simulator!')
+        exit()
             
     return False
 

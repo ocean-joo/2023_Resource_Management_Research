@@ -157,10 +157,12 @@ def experiment_manager():
             time.sleep(0.5)
 
         start_writing_position_info()
+
         pbar = tqdm(range(configs['duration']))
         for _ in pbar:
             pbar.set_description('Experiment ' + str(i+1) + '/' + str(configs['max_iteration']))
             time.sleep(1)
+            if is_collapsed.is_set(): break
         stop_writing_position_info()  
 
         # Kill nodes

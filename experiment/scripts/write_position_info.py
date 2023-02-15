@@ -66,8 +66,10 @@ def write_position_info():
 
     map_wp_list = []
 
-    pose_x = 0
-    pose_y = 0
+    gnss_pose_x = 0
+    gnss_pose_y = 0
+    current_pose_x = 0
+    current_pose_y = 0
 
     lane_msg = rospy.wait_for_message('/lane_waypoints_array', LaneArray, timeout=None)
 
@@ -86,26 +88,27 @@ def write_position_info():
     rospy.wait_for_message('/vehicle_cmd', VehicleCmd, timeout=None)
     with open(center_offset_file, "w") as f:
         center_offset_wr = csv.writer(f)
-        center_offset_wr.writerow(['ts', 'state', 'center_offset', 'ndt_response_time(ms)', 'instance', 'x', 'y', 'ndt_score'])
+        center_offset_wr.writerow(['ts', 'state', 'center_offset', 'ndt_response_time(ms)', 'instance', 'gnss_pose_x', 'gnss_pose_y', 'ndt_score', 'current_pose_x', 'current_pose_y'])
         prev_dis = 0
         while not rospy.is_shutdown():
-            gnss_msg = rospy.wait_for_message('/gnss_pose', PoseStamped, timeout=None)
+            gnss_pose_msg = rospy.wait_for_message('/gnss_pose', PoseStamped, timeout=None)
+            current_pose_msg = rospy.wait_for_message('/current_pose', PoseStamped, timeout=None)
             ndt_stat_msg = rospy.wait_for_message('/ndt_stat', NDTStat, timeout=None)
             twist_msg = rospy.wait_for_message('/rubis_twist_cmd', TwistStamped, timeout=None)
 
             instance=twist_msg.instance
 
-            pose_x = round(gnss_msg.pose.position.x, 3)
-            pose_y = round(gnss_msg.pose.position.y, 3)
-            ori_x = gnss_msg.pose.orientation.x
-            ori_y = gnss_msg.pose.orientation.y
-            ori_z = gnss_msg.pose.orientation.z
-            ori_w = gnss_msg.pose.orientation.w
-            r, p, y = euler_from_quaternion(ori_x, ori_y, ori_z, ori_w)
+            gnss_pose_x = round(gnss_pose_msg.pose.position.x, 3)
+            gnss_pose_y = round(gnss_pose_msg.pose.position.y, 3)
+            gnss_ori_x = gnss_pose_msg.pose.orientation.x
+            gnss_ori_y = gnss_pose_msg.pose.orientation.y
+            gnss_ori_z = gnss_pose_msg.pose.orientation.z
+            gnss_ori_w = gnss_pose_msg.pose.orientation.w                                                         
+            gnss_r, gnss_p, gnss_y = euler_from_quaternion(gnss_ori_x, gnss_ori_y, gnss_ori_z, gnss_ori_w)
 
-            yaw_deg = (y * 180 / math.pi + 1800) % 360
+            yaw_deg = (gnss_y * 180 / math.pi + 1800) % 360
             
-            min_wp, min_dis = find_closest_point(map_wp_list, [pose_x, pose_y], yaw_deg)
+            min_wp, min_dis = find_closest_point(map_wp_list, [gnss_pose_x, gnss_pose_y], yaw_deg)
 
             if abs(prev_dis) > 1.5 and min_dis * prev_dis < 0:
                 min_dis *= 1
@@ -113,7 +116,14 @@ def write_position_info():
 
             state_text = 'None'
 
-            center_offset_wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance, pose_x, pose_y, str(ndt_stat_msg.score)])    
+            current_pose_x = round(current_pose_msg.pose.position.x, 3)
+            current_pose_y = round(current_pose_msg.pose.position.y, 3)
+            ndt_ori_x = current_pose_msg.pose.orientation.x
+            ndt_ori_y = current_pose_msg.pose.orientation.y
+            ndt_ori_z = current_pose_msg.pose.orientation.z
+            ndt_ori_w = current_pose_msg.pose.orientation.w     
+
+            center_offset_wr.writerow([time.clock_gettime(time.CLOCK_MONOTONIC), state_text, str(min_dis), str(ndt_stat_msg.exe_time), instance, gnss_pose_x, gnss_pose_y, str(ndt_stat_msg.score), current_pose_x, current_pose_y])
     f.close()
 
 if __name__ == '__main__':

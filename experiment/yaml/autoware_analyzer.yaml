@@ -1,4 +1,4 @@
-simulator: 'carla' # carla or svl
+simulator: 'carla' # carla or old(before 230204)
 
 avoidnace_x_range: [-2000.0, 3000.0]
 

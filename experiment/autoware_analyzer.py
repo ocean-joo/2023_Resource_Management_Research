@@ -105,7 +105,7 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
         center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
         first_node_path = response_time_path + '/' + first_node + '.csv'
         last_node_path = response_time_path + '/' + last_node + '.csv'
-        start_instance, end_instance = aa.get_instance_pair_by_x(center_offset_path, x_range[0], x_range[1])
+        start_instance, end_instance = aa.get_instance_pair(center_offset_path, x_range[0], x_range[1], configs['simulator'])
         if start_instance < 0: continue
 
         E2E_response_time, _, _ \
@@ -262,7 +262,7 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     exp_title = source_path.split('/')[1]
 
     center_offset_path = dir_path + '/center_offset.csv'
-    waypoints = aa.get_waypoints(center_offset_path)
+    waypoints = aa.get_waypoints(center_offset_path, configs['simulator'])
     waypoints_x = []
     waypoints_y = []
     
@@ -275,7 +275,7 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     
     plt.plot(waypoints_x, waypoints_y, color, linewidth=1.0)
 
-    if configs['simulator'] == 'svl':
+    if configs['simulator'] == 'old':
         # Objects
         npc1_x = [6, 6, -1, -1, 6]
         npc1_y = [51, 48, 48, 51, 51]
@@ -344,7 +344,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
         label = exp_title + '_' + exp_id
 
         center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
-        waypoints = aa.get_waypoints(center_offset_path)
+        waypoints = aa.get_waypoints(center_offset_path, configs['simulator'])
         waypoints_x = []
         waypoints_y = []
         
@@ -358,7 +358,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
         plt.plot(waypoints_x, waypoints_y, color, linewidth=1.0)
 
 
-    if configs['simulator'] == 'svl':
+    if configs['simulator'] == 'old':
         # Objects
         npc1_x = [6, 6, -1, -1, 6]
         npc1_y = [51, 48, 48, 51, 51]
@@ -378,7 +378,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
     # Plot
     plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
     
-    if configs['simulator'] == 'svl':
+    if configs['simulator'] == 'old':
         plt.xlim(-70, 40)
         plt.ylim(20,75)
     elif configs['simulator'] == 'carla':
@@ -512,11 +512,11 @@ if __name__ == '__main__':
             profile_center_offset(center_offset_path, output_title, center_offset, max_center_offset, avg_center_offset, is_collapsed)
 
             # Check matching is failed
-            is_matching_failed = aa.check_matching_is_failed(center_offset_path, start_instance, end_instance)
+            is_matching_failed = aa.check_matching_is_failed(center_offset_path, start_instance, end_instance, configs['simulator'])
             is_matching_failed_list.append(is_matching_failed)
 
             # E2E response time during avoidance
-            avoidance_start_instnace, avoidance_end_instance = aa.get_instance_pair_by_x(center_offset_path, avoidance_x_range[0], avoidance_x_range[1])
+            avoidance_start_instnace, avoidance_end_instance = aa.get_instance_pair(center_offset_path, avoidance_x_range[0], avoidance_x_range[1], configs['simulator'])
             response_time_path = source_path + '/' + str(idx) + '/response_time'            
             profile_response_time(response_time_path, output_title, first_node, last_node, avoidance_start_instnace, avoidance_end_instance, is_collapsed, is_matching_failed)
 
