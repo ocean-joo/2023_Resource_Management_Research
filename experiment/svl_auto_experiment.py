@@ -96,29 +96,38 @@ def perf_thread_main():
     os.system(configs[target_environment]['get_perf_output_cmd'])
     return
 
-def get_perf_event_cnt(event):
+def get_perf_event_cnt_per_sec(event):
     if target_environment != 'exynos': return
     os.system(configs[target_environment]['copy_perf_output_cmd'])
 
-    output = []
+    event_output = []
+    duration_output = []
     with open('perf_output.txt') as f:
         lines = f.readlines()
         for line in lines:            
             if event in line:
-                output = line.split(' ')
+                event_output = line.split(' ')
+            if 'seconds time elapsed' in line:
+                duration_output = line.split(' ')
 
     event_cnt = -1        
-    for v in output: 
+    for v in event_output: 
         if v != '':            
             event_cnt = float(v.replace(',',''))
             break
+    duration = -1.0
+    for v in duration_output: 
+        if v != '':
+            duration = float(v)
+            break
+    avg_event_cnt = event_cnt / duration
+    print(duration, event_cnt, avg_event_cnt)
 
-    return event_cnt
+    return avg_event_cnt
 
-def calculate_avg_memory_bandwidth_usage(l3d_cache_refill_event_cnt):
-    duration = 15.0
-    cache_line_size = 64.0
-    avg_memory_bandwidth_usage = l3d_cache_refill_event_cnt / duration * cache_line_size * 0.000000001
+def calculate_avg_memory_bandwidth_usage(l3d_cache_refill_event_cnt_per_sec):
+    cache_line_size = 64 # Bytes
+    avg_memory_bandwidth_usage = l3d_cache_refill_event_cnt_per_sec * cache_line_size * 0.000000001
     return avg_memory_bandwidth_usage
 
 def experiment_manager(main_thread_pid):
@@ -164,9 +173,9 @@ def experiment_manager(main_thread_pid):
         # Get experiment_info
         experiment_info['is_collaped'] = is_collapsed
         experiment_info['collapsed_position'] = collapsed_position
-        l3d_cache_refill_event_cnt = get_perf_event_cnt('l3d_cache_refill')
-        experiment_info['l3d_cache_refill_event_cnt'] = l3d_cache_refill_event_cnt
-        experiment_info['avg_memory_bandwidth_usage(GB/s)'] = calculate_avg_memory_bandwidth_usage(l3d_cache_refill_event_cnt)
+        l3d_cache_refill_event_cnt_per_sec = get_perf_event_cnt_per_sec('l3d_cache_refill')
+        experiment_info['l3d_cache_refill_event_cnt_per_sec'] = l3d_cache_refill_event_cnt_per_sec
+        experiment_info['avg_memory_bandwidth_usage(GB/s)'] = calculate_avg_memory_bandwidth_usage(l3d_cache_refill_event_cnt_per_sec)
 
         print('- Manager: Save result')
         save_result(i, experiment_info)       

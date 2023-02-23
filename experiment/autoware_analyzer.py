@@ -392,9 +392,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
 
     plt.close()
 
-def profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list):
-    exp_title = source_path.split('/')[1]
-
+def profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list, perf_info = {}):    
     analyzation_info = {}
     collision_index_list = aa.get_idices_of_one_from_list(is_collapsed_list)
     matching_failure_index_list = aa.get_idices_of_one_from_list(is_matching_failed_list)
@@ -405,13 +403,19 @@ def profile_analyzation_info(source_path, output_title, avg_center_offset, is_co
     if len(is_matching_failed_list) == 0: matching_failure_ratio = 0
     else: matching_failure_ratio = sum(is_matching_failed_list)/len(is_matching_failed_list)
 
-    analyzation_info['avg_center_offset'] = avg_center_offset
-    analyzation_info['collision_index'] = collision_index_list
-    analyzation_info['collision_ratio'] = collision_ratio
-    analyzation_info['matching_failure_index'] = matching_failure_index_list
-    analyzation_info['matching_failure_ratio'] = matching_failure_ratio
-    analyzation_info['max_miss_alignment_delay'] = max(max_miss_alignment_delay_list)
-    analyzation_info['avg_miss_alignment_delay'] = sum(avg_miss_alignment_delay_list)/len(avg_miss_alignment_delay_list)
+    analyzation_info['result'] = {}
+    analyzation_info['resource_usage'] = {}
+
+    analyzation_info['result']['avg_center_offset'] = avg_center_offset
+    analyzation_info['result']['collision_index'] = collision_index_list
+    analyzation_info['result']['collision_ratio'] = collision_ratio
+    analyzation_info['result']['matching_failure_index'] = matching_failure_index_list
+    analyzation_info['result']['matching_failure_ratio'] = matching_failure_ratio
+    analyzation_info['result']['max_miss_alignment_delay'] = max(max_miss_alignment_delay_list)
+    analyzation_info['result']['avg_miss_alignment_delay'] = sum(avg_miss_alignment_delay_list)/len(avg_miss_alignment_delay_list)
+
+    for key in list(perf_info.keys()):
+        analyzation_info['resource_usage'][key] = perf_info[key]
 
     analyzation_info_path = 'analyzation/' + output_title + '/analyzation_info.yaml'
     with open(analyzation_info_path, 'w') as f: yaml.dump(analyzation_info, f, default_flow_style=False)
@@ -471,6 +475,33 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
     plt.close()
 
     return max_miss_alignment_delay, avg_miss_alignment_delay
+
+def profile_perf_info_for_experiment(source_path):
+    n = 0
+    for path in os.listdir(source_path):
+        if not os.path.isfile(os.path.join(source_path, path)): n = n + 1
+
+    avg_memory_bandwidth_list = [] # GB/s
+    l3d_cache_refill_per_sec_list = []
+    for idx in range(n):
+        experiment_info_path = source_path + '/' + str(idx) + '/experiment_info.yaml'
+        with open(experiment_info_path) as f:
+            experiment_info = yaml.load(f, Loader=yaml.FullLoader)
+            if 'l3d_cache_refill_event_cnt_per_sec' not in experiment_info \
+                or 'avg_memory_bandwidth_usage(GB/s)' not in experiment_info:
+                return {}
+            
+            l3d_cache_refill_per_sec_list.append(float(experiment_info['l3d_cache_refill_event_cnt_per_sec']))
+            avg_memory_bandwidth_list.append(float(experiment_info['avg_memory_bandwidth_usage(GB/s)']))
+    
+    avg_l3d_cache_refill_per_sec = sum(l3d_cache_refill_per_sec_list)/len(l3d_cache_refill_per_sec_list)
+    avg_memory_bandwidth = sum(avg_memory_bandwidth_list)/len(avg_memory_bandwidth_list)
+    
+    perf_info = {}
+    perf_info['avg_l3d_cache_refill_per_sec'] = avg_l3d_cache_refill_per_sec
+    perf_info['avg_memory_bandwidth'] = avg_memory_bandwidth
+
+    return perf_info
 
 if __name__ == '__main__':
     with open('yaml/autoware_analyzer.yaml') as f:
@@ -532,9 +563,13 @@ if __name__ == '__main__':
         # Profile information from whole experiment
         is_collapsed_list = aa.convert_boolean_list_to_int_list(is_collapsed_list)        
         is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list) 
-        avg_center_offset = profile_avg_center_offset_for_experiment(source_path, is_matching_failed_list)
-        profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list)
+        avg_center_offset = profile_avg_center_offset_for_experiment(source_path, is_matching_failed_list)        
+        perf_info = profile_perf_info_for_experiment(source_path) # Perf related info(memory bandwidth, l3d_cache_refill count)        
+        profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list, perf_info)
+        
         # Profile avoidnace response time
         profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed, x_range=avoidance_x_range, deadline=deadline)
-        # Profile wayupoints
+        
+        # Profile waypoints
         profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed)
+        
