@@ -65,7 +65,7 @@ def get_instance_pair(center_offset_path, start_x, end_x, simulator):
                 continue
             instance = float(line[column_idx['instance']])
             if simulator == 'old': x = float(line[column_idx['x']])
-            elif simulator == 'carla': x = float(line[column_idx['gnss_pose_x']])
+            elif simulator == 'carla' or simulator == 'svl': x = float(line[column_idx['gnss_pose_x']])
             else:
                 print('# Wrong simulator!')
                 exit()
@@ -189,7 +189,7 @@ def get_waypoints(center_offset_path, simulator):
             if simulator == 'old':
                 pose_x = float(line[column_idx['x']])
                 pose_y = float(line[column_idx['y']])
-            elif simulator == 'carla':
+            elif simulator == 'carla' or simulator == 'svl':
                 pose_x = float(line[column_idx['gnss_pose_x']])
                 pose_y = float(line[column_idx['gnss_pose_y']])
             else:
@@ -252,8 +252,12 @@ def check_matching_is_failed(center_offset_path, start_instance, end_instance, s
                 if instance < start_instance: continue
                 if ndt_score > 1.5: return True
                 if instance > end_instance: break
-    elif simulator == 'carla':
+    elif simulator == 'carla' or simulator == 'svl':
         column_idx = {}
+        pose_diff_threshold = 5
+        ndt_score_threshold = 1.5
+        fail_cnt_threshold = 10
+        fail_cnt = 0
         with open(center_offset_path) as f:
             reader = csv.reader(f)
             for i, line in enumerate(reader):
@@ -269,12 +273,15 @@ def check_matching_is_failed(center_offset_path, start_instance, end_instance, s
 
                 if instance < start_instance: continue
                 pose_diff = math.sqrt(math.pow(gnss_pose_x - current_pose_x,2) + math.pow(gnss_pose_y - current_pose_y,2))
-                if pose_diff > 3: return True
+                if pose_diff > pose_diff_threshold:
+                    fail_cnt = fail_cnt + 1
                 if instance > end_instance: break
     else:
         print('# Wrong simulator!')
         exit()
-            
+    
+    if fail_cnt > fail_cnt_threshold: return True
+
     return False
 
 def mouse_event(event):

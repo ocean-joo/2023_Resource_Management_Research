@@ -15,31 +15,25 @@ simulator:
 
 # Host
 lgsvl_bridge:
-  address: 127.0.01
+  address: 127.0.0.1
   port: 9090
 
 ego:
-  asset-id: 477d5100-399c-40bb-aaf8-49b618c7118c
+  asset-id: 477d5100-399c-40bb-aaf8-49b618c7118c # hypark
 
 npc:
   - npc0:
     name: DongMin
     type: Sedan
     offset:
-      forward: 58
-      right: 25
+      forward: 56
+      right: 0
       rotation: -90
   - npc1:
     name: Seohwan
     type: Sedan
     offset:
-      forward: 52
+      forward: 53
       right: 0
       rotation: -90 # Clockwise
-  - npc2:
-    name: Rubis
-    type: Sedan
-    offset:
-      forward: 58
-      right: -30
-      rotation: -90 # Clockwise
+  

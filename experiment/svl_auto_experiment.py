@@ -92,12 +92,12 @@ def twist_cmd_cb(msg):
     return
 
 def experiment_manager(main_thread_pid):
+    print('- Manager: Start manager')
     svl_scenario = svl.svl_scenario(configs['svl_cfg_path'])
 
     # Threads
     autorunner_thread = threading.Thread(target=autorunner)
     autorunner_thread.start()
-    
     # Check rosbridge is started
     while True:
         _output = str(os.popen('rosnode list').read())
@@ -168,9 +168,15 @@ if __name__ == '__main__':
     with open('yaml/svl_auto_experiment_configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
-    if os.path.exists('results/'+configs['experiment_title']):
-        print('[Error] Experiment result exists already')
-        exit()
+    does_dir_exist = os.path.exists('results/'+configs['experiment_title'])
+    # If dir exist
+    if configs['experiment_title'] == 'test':
+        if does_dir_exist:
+            os.system('rm -r results/'+configs['experiment_title'])
+    else:
+        if does_dir_exist:
+            print('[Error] Experiment result exists already')
+            exit()
     os.mkdir('results/'+configs['experiment_title'])
 
     target_environment = configs['target_environment']

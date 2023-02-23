@@ -283,7 +283,7 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
         npc2_y = [55, 52, 52, 55, 55]
         plt.plot(npc1_x, npc1_y, 'k')
         plt.plot(npc2_x, npc2_y, 'k')
-    elif configs['simulator'] == 'carla':
+    elif configs['simulator'] == 'carla' or configs['simulator'] == 'svl':
         pass
 
     # Plot
@@ -366,7 +366,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
         npc2_y = [55, 52, 52, 55, 55]
         plt.plot(npc1_x, npc1_y, 'k')
         plt.plot(npc2_x, npc2_y, 'k')
-    elif configs['simulator'] == 'carla':
+    elif configs['simulator'] == 'carla' or configs['simulator'] == 'svl':
         pass
 
     if len(is_collapsed_list) == 0: collision_ratio = 0
@@ -381,7 +381,7 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
     if configs['simulator'] == 'old':
         plt.xlim(-70, 40)
         plt.ylim(20,75)
-    elif configs['simulator'] == 'carla':
+    elif configs['simulator'] == 'carla' or configs['simulator'] == 'svl':
         pass
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
