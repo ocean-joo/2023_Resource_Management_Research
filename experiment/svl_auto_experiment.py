@@ -91,6 +91,36 @@ def twist_cmd_cb(msg):
         is_autorunner_started.clear()
     return
 
+def perf_thread_main():
+    if target_environment == 'desktop': return
+    os.system(configs[target_environment]['get_perf_output_cmd'])
+    return
+
+def get_perf_event_cnt(event):
+    if target_environment != 'exynos': return
+    os.system(configs[target_environment]['copy_perf_output_cmd'])
+
+    output = []
+    with open('perf_output.txt') as f:
+        lines = f.readlines()
+        for line in lines:            
+            if event in line:
+                output = line.split(' ')
+
+    event_cnt = -1        
+    for v in output: 
+        if v != '':            
+            event_cnt = float(v.replace(',',''))
+            break
+
+    return event_cnt
+
+def calculate_avg_memory_bandwidth_usage(l3d_cache_refill_event_cnt):
+    duration = 15.0
+    cache_line_size = 64.0
+    avg_memory_bandwidth_usage = l3d_cache_refill_event_cnt / duration * cache_line_size * 0.000000001
+    return avg_memory_bandwidth_usage
+
 def experiment_manager(main_thread_pid):
     print('- Manager: Start manager')
     svl_scenario = svl.svl_scenario(configs['svl_cfg_path'])
@@ -105,8 +135,10 @@ def experiment_manager(main_thread_pid):
 
     for i in range(configs['max_iteration']):
         experiment_info = {}
-        is_collapsed = False
+        is_collapsed = False        
         is_experiment_running.set()
+        perf_thread = threading.Thread(target=perf_thread_main)
+
 
         # Initialize SVL scenario
         print('- Manager: Init svl scenario')
@@ -116,18 +148,26 @@ def experiment_manager(main_thread_pid):
         
         # Start Experiment
         print('- Mnager: Start Experiment')
-        start_writing_position_info()
-        is_collapsed, collapsed_position = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))
+        start_writing_position_info()                
+        perf_thread.start()
+        is_collapsed, collapsed_position = svl_scenario.run(timeout=configs['duration'], label='Iteration: ' + str(i+1)+'/'+str(configs['max_iteration']))        
         stop_writing_position_info()
-        experiment_info['is_collaped'] = is_collapsed
-        experiment_info['collapsed_position'] = collapsed_position
 
         if i+1 == int(configs['max_iteration']): is_experiment_running.clear()
 
-        # Terminate
+        # Terminate        
         kill_autorunner()
+        perf_thread.join()
         is_autorunner_started.clear()
         is_scenario_started.clear()
+        
+        # Get experiment_info
+        experiment_info['is_collaped'] = is_collapsed
+        experiment_info['collapsed_position'] = collapsed_position
+        l3d_cache_refill_event_cnt = get_perf_event_cnt('l3d_cache_refill')
+        experiment_info['l3d_cache_refill_event_cnt'] = l3d_cache_refill_event_cnt
+        experiment_info['avg_memory_bandwidth_usage(GB/s)'] = calculate_avg_memory_bandwidth_usage(l3d_cache_refill_event_cnt)
+
         print('- Manager: Save result')
         save_result(i, experiment_info)       
         if not is_experiment_running.is_set():
