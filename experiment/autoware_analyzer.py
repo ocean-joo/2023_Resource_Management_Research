@@ -482,24 +482,28 @@ def profile_perf_info_for_experiment(source_path):
         if not os.path.isfile(os.path.join(source_path, path)): n = n + 1
 
     avg_memory_bandwidth_list = [] # GB/s
-    l3d_cache_refill_per_sec_list = []
+    l3d_cache_refill_event_cnt_of_ADAS_cores_list = []
+    l3d_cache_refill_event_cnt_of_all_cores_list = []
     for idx in range(n):
         experiment_info_path = source_path + '/' + str(idx) + '/experiment_info.yaml'
         with open(experiment_info_path) as f:
             experiment_info = yaml.load(f, Loader=yaml.FullLoader)
-            if 'l3d_cache_refill_event_cnt_per_sec' not in experiment_info \
-                or 'avg_memory_bandwidth_usage(GB/s)' not in experiment_info:
+            if 'l3d_cache_refill_event_cnt_of_ADAS_cores(per sec)' not in experiment_info \
+                or 'avg_total_memory_bandwidth_usage(GB/s)' not in experiment_info \
+                or 'l3d_cache_refill_event_cnt_of_all_cores(per sec)' not in experiment_info:
                 return {}
-            
-            l3d_cache_refill_per_sec_list.append(float(experiment_info['l3d_cache_refill_event_cnt_per_sec']))
-            avg_memory_bandwidth_list.append(float(experiment_info['avg_memory_bandwidth_usage(GB/s)']))
+            l3d_cache_refill_event_cnt_of_ADAS_cores_list.append(float(experiment_info['l3d_cache_refill_event_cnt_of_ADAS_cores(per sec)']))
+            l3d_cache_refill_event_cnt_of_all_cores_list.append(float(experiment_info['l3d_cache_refill_event_cnt_of_all_cores(per sec)']))
+            avg_memory_bandwidth_list.append(float(experiment_info['avg_total_memory_bandwidth_usage(GB/s)']))
     
-    avg_l3d_cache_refill_per_sec = sum(l3d_cache_refill_per_sec_list)/len(l3d_cache_refill_per_sec_list)
+    avg_l3d_cache_refill_event_cnt_of_ADAS_cores = sum(l3d_cache_refill_event_cnt_of_ADAS_cores_list)/len(l3d_cache_refill_event_cnt_of_ADAS_cores_list)
+    avg_l3d_cache_refill_event_cnt_of_all_cores = sum(l3d_cache_refill_event_cnt_of_all_cores_list)/len(l3d_cache_refill_event_cnt_of_all_cores_list)
     avg_memory_bandwidth = sum(avg_memory_bandwidth_list)/len(avg_memory_bandwidth_list)
     
     perf_info = {}
-    perf_info['avg_l3d_cache_refill_per_sec'] = avg_l3d_cache_refill_per_sec
-    perf_info['avg_memory_bandwidth'] = avg_memory_bandwidth
+    perf_info['avg_l3d_cache_refill_event_cnt_of_ADAS_cores(per sec)'] = avg_l3d_cache_refill_event_cnt_of_ADAS_cores
+    perf_info['avg_l3d_cache_refill_event_cnt_of_all_cores(per sec)'] = avg_l3d_cache_refill_event_cnt_of_all_cores
+    perf_info['avg_total_memory_bandwidth_usage'] = avg_memory_bandwidth
 
     return perf_info
 
