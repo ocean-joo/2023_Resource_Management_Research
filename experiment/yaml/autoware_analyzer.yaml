@@ -7,8 +7,8 @@ avoidnace_x_range: [-1000, 1000]
 # node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
 
 
-experiment_title: ['230223_L3_ED-ZIGZAG-v9-25_456_StrideTest_7']
-output_title:     ['230223_L3_ED-ZIGZAG-v9-25_456_StrideTest_7']
+experiment_title: ['test']
+output_title:     ['test']
 first_node:       ['lidar_republisher']
 last_node:        ['twist_gate']
 E2E_deadline:     [400.0]

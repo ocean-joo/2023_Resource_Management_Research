@@ -2,23 +2,21 @@
 experiment_title: 'test'
 target_environment: exynos # desktop / exynos 
 autorunner_mode: FULL # LKAS / FULL
-max_iteration: 2
-duration: 20 # sec
+max_iteration: 1
+duration: 2 # sec
 svl_cfg_path: /home/hayeonp/git/2023_Resource_Management_Research/experiment/yaml/svl_scenario.yaml
+
+ADAS_cores: 4-6
+all_cores: 0-7
 
 # Commands
 desktop:  
   rosbridge_cmd: roslaunch /home/hayeonp/rosbridge_websocket.launch
-  cubetown_lkas_autorunner_cmd: roslaunch rubis_autorunner cubetown_lkas_autorunner.launch
-  cubetown_full_autorunner_cmd: roslaunch rubis_autorunner cubetown_full_autorunner.launch
   termination_cmd: ./scripts/terminate_desktop.sh
   response_time_path: /home/hayeonp/Documents/profiling/response_time
 
 exynos:  
+  target_ip: '192.168.0.8'
   rosbridge_cmd: roslaunch /home/hayeonp/rosbridge_websocket.launch
-  cubetown_lkas_autorunner_cmd: ssh root@192.168.0.8 "lxc-attach -n linux1 -- /home/root/scripts/cubetown_lkas_autorunner.sh"
-  cubetown_full_autorunner_cmd: ssh root@192.168.0.8 "lxc-attach -n linux1 -- /home/root/scripts/cubetown_full_autorunner.sh"
   termination_cmd: ./scripts/terminate_exynos.sh
   response_time_path: /var/lib/lxc/linux1/rootfs/home/root/Documents/profiling/response_time
-  get_perf_output_cmd: ssh root@192.168.0.8 'perf stat -e l3d_cache_refill -C 0-7 sleep 15 &> /home/root/perf_output.txt'
-  copy_perf_output_cmd: scp root@192.168.0.8:/home/root/perf_output.txt .
