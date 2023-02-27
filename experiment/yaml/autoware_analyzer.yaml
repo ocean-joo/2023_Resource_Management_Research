@@ -1,17 +1,17 @@
 simulator: 'svl' # carla, svl or old(before 230204)
 
-# avoidnace_x_range: [-34.0, 25.0]
-avoidnace_x_range: [-1000, 1000]
+# avoidance_x_range: [-34.0, 25.0]
+avoidance_x_range: [-99999, 99999]
 
 # # The node chain for LKAS
 # node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
 
 
-experiment_title: ['230222_L3_ED-ZIGZAG-v9_012_StrideTest_3','230221_BASE_ED-ZIGZAG-v9_012','230221_BASE_ED-AVOID-v11_012']
-output_title:     ['230222_L3_ED-ZIGZAG-v9_012_StrideTest_3','230221_BASE_ED-ZIGZAG-v9_012','230221_BASE_ED-AVOID-v11_012']
-first_node:       ['lidar_republisher',''lidar_republisher','lidar_republisher']
-last_node:        ['twist_gate',''twist_gate','twist_gate']
-E2E_deadline:     [400.0,400.0,400.0]
+experiment_title: ['230226_Carla_opt_v10_mission']
+output_title:     ['230226_Carla_opt_v10_mission']
+first_node:       ['lidar_republisher']
+last_node:        ['twist_gate']
+E2E_deadline:     [400.0]
 
 # The node chain for LKAS
 node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']

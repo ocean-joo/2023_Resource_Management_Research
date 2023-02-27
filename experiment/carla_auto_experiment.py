@@ -7,7 +7,7 @@ import yaml
 from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import TwistStamped
 from carla_msgs.msg import CarlaCollisionEvent
-import scripts.slack_library as slack_library
+# import scripts.slack_library as slack_library
 import signal
 from multiprocessing import Process
 from tqdm import tqdm
@@ -20,7 +20,7 @@ is_collapsed = threading.Event()
 configs = {}
 node_info = {}
 target_environment = 'null'
-slack_webhook = 'null'
+# slack_webhook = 'null'
 
 def get_ps_info_with_grep(grep_str):
     ps_info_list = []
@@ -188,7 +188,7 @@ def experiment_manager():
             
     message = '- Manager: Experiment is finished: '+configs['experiment_title']
     payload = {"text": message}
-    slack_library.send_slack_message(payload, slack_webhook)
+    # slack_library.send_slack_message(payload, slack_webhook)
     
     os.system('rosnode kill auto_experiment')
     
@@ -224,7 +224,7 @@ def carla_collision_event_cb(msg):
     return
 
 if __name__ == '__main__':
-    slack_webhook = slack_library.get_slack_webhook()
+    # slack_webhook = slack_library.get_slack_webhook()
 
     with open('yaml/carla_auto_experiment_configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)

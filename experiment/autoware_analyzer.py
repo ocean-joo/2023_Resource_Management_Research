@@ -477,7 +477,7 @@ if __name__ == '__main__':
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
     chain_info = configs['node_chain']
-    avoidance_x_range = configs['avoidnace_x_range']
+    avoidance_x_range = configs['avoidance_x_range']
 
     for i in range(len(configs['experiment_title'])):
         experiment_title = configs['experiment_title'][i]
@@ -515,10 +515,10 @@ if __name__ == '__main__':
             is_matching_failed = aa.check_matching_is_failed(center_offset_path, start_instance, end_instance, configs['simulator'])
             is_matching_failed_list.append(is_matching_failed)
 
-            # E2E response time during avoidance
-            avoidance_start_instnace, avoidance_end_instance = aa.get_instance_pair(center_offset_path, avoidance_x_range[0], avoidance_x_range[1], configs['simulator'])
+            # E2E response time
+            avoidance_start_instance, avoidance_end_instance = aa.get_instance_pair(center_offset_path, avoidance_x_range[0], avoidance_x_range[1], configs['simulator'])
             response_time_path = source_path + '/' + str(idx) + '/response_time'            
-            profile_response_time(response_time_path, output_title, first_node, last_node, avoidance_start_instnace, avoidance_end_instance, is_collapsed, is_matching_failed)
+            profile_response_time(response_time_path, output_title, first_node, last_node, avoidance_start_instance, avoidance_end_instance, is_collapsed, is_matching_failed)
 
             # Miss alignment delay for whole driving
             max_miss_alignment_delay, avg_miss_alignment_delay = profile_miss_alignment_delay(response_time_path, output_title, chain_info, start_instance, end_instance, is_collapsed)

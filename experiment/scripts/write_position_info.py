@@ -95,6 +95,7 @@ def write_position_info():
             current_pose_msg = rospy.wait_for_message('/current_pose', PoseStamped, timeout=None)
             ndt_stat_msg = rospy.wait_for_message('/ndt_stat', NDTStat, timeout=None)
             twist_msg = rospy.wait_for_message('/rubis_twist_cmd', TwistStamped, timeout=None)
+            # twist_msg = rospy.wait_for_message('/twist_cmd', TwistStamped, timeout=None)
 
             instance=twist_msg.instance
 
