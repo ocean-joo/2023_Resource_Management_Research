@@ -1,4 +1,5 @@
 # Setup
+adas_image_name: 'test.ext4'
 experiment_title: 'test'
 target_environment: exynos # desktop / exynos 
 autorunner_mode: FULL # LKAS / FULL

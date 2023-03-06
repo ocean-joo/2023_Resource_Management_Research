@@ -64,7 +64,7 @@ def save_result(iter, experiment_info):
     if configs['target_environment'] == 'desktop':
         os.system('cp -r '+configs[target_environment]['response_time_path']+ ' ' + output_path)
     elif configs['target_environment'] == 'exynos':
-        os.system('scp -r root@192.168.0.8:'+configs[target_environment]['response_time_path']+ ' ' + output_path)
+        os.system('scp -r root@' + configs[target_environment]['target_ip'] +':'+configs[target_environment]['response_time_path']+ ' ' + output_path)
     else:
         print('[Error] Invalid target environment:',configs['target_envirnment'])
 
@@ -280,8 +280,14 @@ if __name__ == '__main__':
     with open('yaml/svl_auto_experiment_configs.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
 
+    # Setup target environment
+    target_environment = configs['target_environment']
+    if target_environment not in ['desktop', 'exynos']:
+        print('[Error] Invalid target environment')
+        exit()
+
+    # Create result dir
     does_dir_exist = os.path.exists('results/'+configs['experiment_title'])
-    # If dir exist
     if configs['experiment_title'] == 'test':
         if does_dir_exist:
             os.system('rm -r results/'+configs['experiment_title'])
@@ -290,11 +296,22 @@ if __name__ == '__main__':
             print('[Error] Experiment result exists already')
             exit()
     os.mkdir('results/'+configs['experiment_title'])
+    os.mkdir('results/'+configs['experiment_title']+'/configs')
+    
+    # Backup autoware params
+    if target_environment == 'desktop':
+        print('##')
+        os.system('cp ~/rubis_ws/src/rubis_autorunner/cfg/cubetown_autorunner/cubetown_autorunner_params.yaml ' + 'results/'+configs['experiment_title']+'/configs')
+    elif target_environment == 'exynos':
+        print('!!')
+        os.system('scp -r root@' + configs[target_environment]['target_ip'] +':/var/lib/lxc/linux1/rootfs/opt/ros/melodic/share/rubis_autorunner/cfg/cubetown_autorunner/cubetown_autorunner_params.yaml ' + 'results/'+configs['experiment_title']+'/configs')        
 
-    target_environment = configs['target_environment']
-    if target_environment not in ['desktop', 'exynos']:
-        print('[Error] Invalid target environment')
-        exit()
+    # Backup svl scenario
+    os.system('cp yaml/svl_scenario.yaml ' + 'results/'+configs['experiment_title']+'/configs')
+
+    # Backup image name
+    with open('results/'+configs['experiment_title']+'/configs/image.txt', 'w') as f:
+        f.write(configs['adas_image_name'])        
 
     manager_thread = threading.Thread(target=experiment_manager, args=(main_thread_pid, ))    
     manager_thread.start()
