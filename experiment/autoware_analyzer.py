@@ -484,6 +484,7 @@ def profile_perf_info_for_experiment(source_path):
     avg_memory_bandwidth_list = [] # GB/s
     l3d_cache_refill_event_cnt_of_ADAS_cores_list = []
     l3d_cache_refill_event_cnt_of_all_cores_list = []
+    n = n - 1
     for idx in range(n):
         experiment_info_path = source_path + '/' + str(idx) + '/experiment_info.yaml'
         with open(experiment_info_path) as f:
@@ -523,7 +524,7 @@ if __name__ == '__main__':
 
         source_path = 'results/' + experiment_title
 
-        n = aa.get_number_of_files(source_path)
+        n = aa.get_number_of_files(source_path) - 1
         is_collapsed_list = []
         is_matching_failed_list = []
         max_miss_alignment_delay_list = []

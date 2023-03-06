@@ -311,7 +311,11 @@ if __name__ == '__main__':
 
     # Backup image name
     with open('results/'+configs['experiment_title']+'/configs/image.txt', 'w') as f:
-        f.write(configs['adas_image_name'])        
+        f.write(configs['adas_image_name'])      
+
+    # Backup duration time
+    with open('results/'+configs['experiment_title']+'/configs/duration.txt', 'w') as f:
+        f.write(str(configs['duration']))  
 
     manager_thread = threading.Thread(target=experiment_manager, args=(main_thread_pid, ))    
     manager_thread.start()
