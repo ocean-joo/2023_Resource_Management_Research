@@ -1,7 +1,7 @@
 rosnode kill /twist_gate
 rosnode kill /lidar_republisher
-rosnode kill /lidar_republisher1
-rosnode kill /lidar_republisher2
+rosnode kill /lidar_republisher_redundant1
+rosnode kill /lidar_republisher_redundant2
 rosnode kill /republish1
 rosnode kill /republish2
 rosnode kill /base_link_to_velodyne
