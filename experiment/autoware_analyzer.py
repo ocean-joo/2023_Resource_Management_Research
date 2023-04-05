@@ -299,6 +299,37 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
 
     plt.close()
 
+def profile_speeds(dir_path, output_title, is_collapsed, is_matching_failed, target_speed):
+    exp_title = dir_path.split('/')[1]
+    exp_id = dir_path.split('/')[2]
+    output_dir_path = 'analyzation/' + output_title + '/speeds'
+    if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
+
+
+    # Waypoints
+    exp_title = source_path.split('/')[1]
+
+    center_offset_path = dir_path + '/center_offset.csv'
+    speeds = aa.get_speeds(center_offset_path, configs['simulator'], "ms")
+    
+    color = 'b'
+    if is_collapsed: color = 'r'
+    
+    plt.plot(speeds, color, linewidth=1.0)
+
+    # Plot
+    plot_speeds = output_dir_path + '/' + exp_title + '_' + exp_id + '_speeds.png'
+            
+    # plt.xlim(-70, 40)
+    # plt.ylim(20,75)
+    plt.xlabel('instance')
+    plt.ylabel('m/s')
+    plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
+    plt.legend()
+    plt.savefig(plot_speeds)
+
+    plt.close()
+
 def profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list):
     _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='all')
     _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_list, is_matching_failed_list, mode='normal')
@@ -422,10 +453,11 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
 
+
     first_node_path = dir_path + '/' + chain_info[0] + '.csv'
     last_node_path = dir_path + '/' + chain_info[-1] + '.csv'
     E2E_response_time, _, _ = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type='shortest')
-
+    print(E2E_response_time)    
     node_response_time_list = []
     for node in chain_info:        
         node_path = dir_path + '/' + node + '.csv'
@@ -478,6 +510,7 @@ if __name__ == '__main__':
 
     chain_info = configs['node_chain']
     avoidance_x_range = configs['avoidance_x_range']
+    target_speed = configs['target_speed']
 
     for i in range(len(configs['experiment_title'])):
         experiment_title = configs['experiment_title'][i]

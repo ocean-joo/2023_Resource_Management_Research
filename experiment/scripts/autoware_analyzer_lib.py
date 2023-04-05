@@ -199,6 +199,29 @@ def get_waypoints(center_offset_path, simulator):
     
     return waypoints
 
+def get_speed(center_offset_path, simulator, scale):
+    speed = []
+    column_idx = {}
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            if simulator == 'old':
+                speed = float(line[column_idx['x']])
+            elif simulator == 'carla' or simulator == 'svl':
+                speed = float(line[column_idx['current_speed']])
+            else:
+                print('# Wrong simulator!')
+                exit()
+            if scale == 'kms':
+                waypoints.append(speed)
+            if scale == 'ms':
+                waypoints.append(speed/3.6)
+    
+    return speeds
+
 def get_center_line(center_line_path):
     column_idx = {}
     center_line = []
