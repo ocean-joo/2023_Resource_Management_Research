@@ -6,9 +6,10 @@ avoidance_x_range: [-99999, 99999]
 # # The node chain for LKAS
 # node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
 
+# experiment_title: ['230404_default_v05']
 
-experiment_title: ['230227_Carla_test']
-output_title:     ['230227_Carla_test']
+experiment_title: [['230407_default_v05', '230407_opt_v05']]
+output_title:     ['230407_v05']
 target_speed:     [5]
 first_node:       ['lidar_republisher']
 last_node:        ['twist_gate']

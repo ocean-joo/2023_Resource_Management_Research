@@ -160,6 +160,19 @@ def start_rosbag_record(topic_names):
     return
 '''
 
+def get_instances(center_offset_path):
+    column_idx = {}
+    instances = []
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            instance = float(line[column_idx['instance']])
+            instances.append(instance)
+    return instances
+
 def get_center_offset(center_offset_path):
     column_idx = {}
     center_offset = {}
@@ -169,8 +182,9 @@ def get_center_offset(center_offset_path):
             if i == 0: 
                 column_idx = get_column_idx_from_csv(line)
                 continue
-            instance = float(line[column_idx['instance']])
-            center_offset[instance] = abs(float(line[column_idx['center_offset']]))
+            ts = float(line[column_idx['ts']])
+            center_offset[ts] = float(line[column_idx['center_offset']])
+            # center_offset[instance] = abs(float(line[column_idx['center_offset']]))
 
     max_center_offset = get_dict_max(center_offset)
     avg_center_offset = get_dict_avg(center_offset)
@@ -199,8 +213,8 @@ def get_waypoints(center_offset_path, simulator):
     
     return waypoints
 
-def get_speed(center_offset_path, simulator, scale):
-    speed = []
+def get_speed(center_offset_path, simulator, scale='kmh'):
+    speeds = {}
     column_idx = {}
     with open(center_offset_path) as f:
         reader = csv.reader(f)
@@ -208,6 +222,7 @@ def get_speed(center_offset_path, simulator, scale):
             if i == 0: 
                 column_idx = get_column_idx_from_csv(line)
                 continue
+            ts = float(line[column_idx['ts']])
             if simulator == 'old':
                 speed = float(line[column_idx['x']])
             elif simulator == 'carla' or simulator == 'svl':
@@ -215,10 +230,12 @@ def get_speed(center_offset_path, simulator, scale):
             else:
                 print('# Wrong simulator!')
                 exit()
-            if scale == 'kms':
-                waypoints.append(speed)
+            if scale == 'kmh':
+                # speeds.append(speed)
+                speeds[ts] = speed
             if scale == 'ms':
-                waypoints.append(speed/3.6)
+                # speeds.append(speed/3.6)
+                speeds[ts] = speed/3.6
     
     return speeds
 
