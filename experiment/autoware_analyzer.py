@@ -32,7 +32,8 @@ def _profile_response_time(dir_path, output_title, first_node, last_node, start_
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
 
-    output_dir_path = 'analyzation/' + output_title + '/' + type + '_E2E_response_time'
+    # output_dir_path = 'analyzation/' + output_title + '/' + type + '_E2E_response_time'
+    output_dir_path = os.path.join('analyzation', output_title, type + '_E2E_response_time')
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
     # Plot graph
@@ -42,7 +43,8 @@ def _profile_response_time(dir_path, output_title, first_node, last_node, start_
         x_data = x_data[:int(len(x_data) * filter)]
         y_data = y_data[:int(len(y_data) * filter)]
 
-    plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_' + type + '_E2E_plot.png'
+    # plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_' + type + '_E2E_plot.png'
+    plot_path = os.path.join(output_dir_path, exp_title + '_' + exp_id + '_' + type + '_E2E_plot.png')
 
     plt.plot(x_data, y_data)
     plt.axhline(y = max_E2E_response_time, color = 'r', linestyle = ':', label='Max')
@@ -101,10 +103,16 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
     x_data = []
     for idx in target_experiment_idx_list:
         is_collapsed = is_collapsed_list[idx]        
-        response_time_path = source_path + '/' + str(idx) + '/response_time'
-        center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
-        first_node_path = response_time_path + '/' + first_node + '.csv'
-        last_node_path = response_time_path + '/' + last_node + '.csv'
+
+        response_time_path = os.path.join(source_path, str(idx), 'response_time')
+        center_offset_path = os.path.join(source_path, str(idx), 'center_offset.csv')
+        first_node_path = os.path.join(response_time_path, first_node + '.csv')
+        last_node_path = os.path.join(response_time_path, last_node + '.csv')
+        
+        # response_time_path = source_path + '/' + str(idx) + '/response_time'
+        # center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        # first_node_path = response_time_path + '/' + first_node + '.csv'
+        # last_node_path = response_time_path + '/' + last_node + '.csv'
         start_instance, end_instance = aa.get_instance_pair(center_offset_path, x_range[0], x_range[1], configs['simulator'])
         if start_instance < 0: continue
 
@@ -157,8 +165,9 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
         avg_E2E_response_time = sum(all_E2E_response_time_list) / len(all_E2E_response_time_list)
         var_E2E_response_time = float(np.var(all_E2E_response_time_list))
         avg_max_E2E_response_time = sum(max_E2E_response_time_list) / len(max_E2E_response_time_list)
-    
-    E2E_response_time_info_path = 'analyzation/' + output_title + '/' + exp_title + '_E2E_response_time_info(' + mode + ',' + type + ').yaml'
+
+    # E2E_response_time_info_path = 'analyzation/' + output_title + '/' + exp_title + '_E2E_response_time_info(' + mode + ',' + type + ').yaml'
+    E2E_response_time_info_path = os.path.join('analyzation', output_title, exp_title + '_E2E_response_time_info(' + mode + ',' + type + ').yaml')
     E2E_response_time_info = {}
     E2E_response_time_info['deadline_ms'] = deadline
     E2E_response_time_info['max'] = max_E2E_response_time
@@ -185,7 +194,8 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
     else: matching_failure_ratio = sum(is_matching_failed_list)/len(is_matching_failed_list)
 
     # Plot    
-    plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_' + type + '_E2E_response_time.png'
+    # plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_' + type + '_E2E_response_time.png'
+    plot_path = os.path.join('analyzation', output_title, exp_title + '_' + mode + '_' + type + '_E2E_response_time.png')
 
     plt.legend()    
     plt.xlabel('Instance ID')
@@ -208,16 +218,22 @@ def _profile_response_time_for_experiment(source_path, output_title, first_node,
 def profile_center_offset(dir_path, output_title, center_offset, max_center_offset, avg_center_offset, is_collapsed):
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
-    output_dir_path = 'analyzation/' + output_title + '/center_offset'
+    output_dir_path = os.path.join('analyzation', output_title, 'center_offset')
+    # output_dir_path = 'analyzation/' + output_title + '/center_offset'
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
     # Plot graph
     x_data = list(center_offset.keys()) # Instance IDs
     y_data = list(center_offset.values()) # Center offset(m)
-    plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_center_offset.png'
+    plot_path = os.path.join(output_dir_path, exp_title + '_' + exp_id + '_center_offset.png')
+    # plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_center_offset.png'
+
+    # print('x_data: ', x_data)
+    # print('y_data: ', y_data)
+
 
     plt.plot(x_data, y_data)
-    plt.axhline(y = max_center_offset, color = 'r', linestyle = ':', label='Max')
+    # plt.axhline(y = max_center_offset, color = 'r', linestyle = ':', label='Max')
     plt.axhline(y = avg_center_offset, color = 'b', linestyle = ':', label='Avg')    
     plt.legend()    
     plt.xlabel('Instance ID')
@@ -231,7 +247,8 @@ def profile_avg_center_offset_for_experiment(source_path, is_matching_failed_lis
 
     all_center_offset = []
     for idx in range(len(target_experiment_idx_list)):
-        center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        # center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        center_offset_path = os.path.join(source_path, str(idx), 'center_offset.csv')
         center_offset, _, _ = aa.get_center_offset(center_offset_path)
         all_center_offset.extend(center_offset)
     avg = 0
@@ -243,11 +260,13 @@ def profile_avg_center_offset_for_experiment(source_path, is_matching_failed_lis
 def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
-    output_dir_path = 'analyzation/' + output_title + '/trajectories'
+    # output_dir_path = 'analyzation/' + output_title + '/trajectories'
+    output_dir_path = os.path.join('analyzation', output_title, 'trajectories')
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
     # Centerline
-    center_line_path = dir_path + '/center_line.csv'
+    # center_line_path = dir_path + '/center_line.csv'
+    center_line_path = os.path.join(dir_path, 'center_line.csv')
     center_line = aa.get_center_line(center_line_path)
     center_line_x = []
     center_line_y = []
@@ -261,7 +280,8 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     # Waypoints
     exp_title = source_path.split('/')[1]
 
-    center_offset_path = dir_path + '/center_offset.csv'
+    # center_offset_path = dir_path + '/center_offset.csv'
+    center_offset_path = os.path.join(dir_path, 'center_offset.csv')
     waypoints = aa.get_waypoints(center_offset_path, configs['simulator'])
     waypoints_x = []
     waypoints_y = []
@@ -273,7 +293,7 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
     color = 'b'
     if is_collapsed: color = 'r'
     
-    plt.plot(waypoints_x, waypoints_y, color, linewidth=1.0)
+    plt.plot(waypoints_x, waypoints_y, color, linewidth=1.0, label='trajectory')
 
     if configs['simulator'] == 'old':
         # Objects
@@ -287,12 +307,14 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
         pass
 
     # Plot
-    plot_path = output_dir_path + '/' + exp_title + '_' + exp_id + '_waypoints.png'
+    # plot_path = output_dir_path + '/' + exp_title + '_' + exp_id + '_waypoints.png'
+    plot_path = os.path.join(output_dir_path, exp_title + '_' + exp_id + '_waypoints.png')
             
     # plt.xlim(-70, 40)
     # plt.ylim(20,75)
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
+    
     plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
     plt.legend()
     plt.savefig(plot_path)
@@ -302,20 +324,26 @@ def profile_waypoints(dir_path, output_title, is_collapsed, is_matching_failed):
 def profile_speeds(dir_path, output_title, is_collapsed, is_matching_failed, target_speed):
     exp_title = dir_path.split('/')[1]
     exp_id = dir_path.split('/')[2]
-    output_dir_path = 'analyzation/' + output_title + '/speeds'
+    # output_dir_path = 'analyzation/' + output_title + '/speeds'
+    output_dir_path = os.path.join('analyzation', output_title, 'speeds')
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
 
 
     # Waypoints
     exp_title = source_path.split('/')[1]
 
-    center_offset_path = dir_path + '/center_offset.csv'
-    speeds = aa.get_speeds(center_offset_path, configs['simulator'], "ms")
+    # center_offset_path = dir_path + '/center_offset.csv'
+    center_offset_path = os.path.join(dir_path, 'center_offset.csv')
+    speeds = aa.get_speed(center_offset_path, configs['simulator'], "kmh")
+
+    x_data = np.array(list(speeds.keys()))
+    y_data = np.array(list(speeds.values()))
     
     color = 'b'
     if is_collapsed: color = 'r'
     
-    plt.plot(speeds, color, linewidth=1.0)
+    plt.axhline(y = target_speed*3.6, color = 'lightgray', label=str(target_speed*3.6)+'km/h', linewidth=5)
+    plt.plot(x_data, y_data, label='speed', linestyle='-', linewidth=1)
 
     # Plot
     plot_speeds = output_dir_path + '/' + exp_title + '_' + exp_id + '_speeds.png'
@@ -323,7 +351,7 @@ def profile_speeds(dir_path, output_title, is_collapsed, is_matching_failed, tar
     # plt.xlim(-70, 40)
     # plt.ylim(20,75)
     plt.xlabel('instance')
-    plt.ylabel('m/s')
+    plt.ylabel('km/h')
     plt.title('is_collapsed='+str(is_collapsed) + '/ is_matching_failed='+str(is_matching_failed))
     plt.legend()
     plt.savefig(plot_speeds)
@@ -345,7 +373,8 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
     n = len(is_collapsed_list)
 
     # Centerline
-    center_line_path = source_path + '/0/center_line.csv'
+    # center_line_path = source_path + '/0/center_line.csv'
+    center_line_path = os.path.join(source_path, '0', 'center_line.csv')
     center_line = aa.get_center_line(center_line_path)
     center_line_x = []
     center_line_y = []
@@ -374,7 +403,8 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
         exp_id = str(idx)
         label = exp_title + '_' + exp_id
 
-        center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        # center_offset_path = source_path + '/' + str(idx) + '/center_offset.csv'
+        center_offset_path = os.path.join(source_path, str(idx), 'center_offset.csv')
         waypoints = aa.get_waypoints(center_offset_path, configs['simulator'])
         waypoints_x = []
         waypoints_y = []
@@ -407,7 +437,8 @@ def _profile_waypoints_for_experiment(source_path, output_title, is_collapsed_li
     else: matching_failure_ratio = sum(is_matching_failed_list)/len(is_matching_failed_list)
 
     # Plot
-    plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
+    # plot_path = 'analyzation/' + output_title + '/' + exp_title + '_' + mode + '_waypoints.png'        
+    plot_path = os.path.join('analyzation', output_title, exp_title + '_' + mode + '_waypoints.png')
     
     if configs['simulator'] == 'old':
         plt.xlim(-70, 40)
@@ -444,7 +475,8 @@ def profile_analyzation_info(source_path, output_title, avg_center_offset, is_co
     analyzation_info['max_miss_alignment_delay'] = max(max_miss_alignment_delay_list)
     analyzation_info['avg_miss_alignment_delay'] = sum(avg_miss_alignment_delay_list)/len(avg_miss_alignment_delay_list)
 
-    analyzation_info_path = 'analyzation/' + output_title + '/analyzation_info.yaml'
+    # analyzation_info_path = 'analyzation/' + output_title + '/analyzation_info.yaml'
+    analyzation_info_path = os.path.join('analyzation', output_title, 'analyzation_info.yaml')
     with open(analyzation_info_path, 'w') as f: yaml.dump(analyzation_info, f, default_flow_style=False)
 
     return
@@ -454,13 +486,17 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
     exp_id = dir_path.split('/')[2]
 
 
-    first_node_path = dir_path + '/' + chain_info[0] + '.csv'
-    last_node_path = dir_path + '/' + chain_info[-1] + '.csv'
+    # first_node_path = dir_path + '/' + chain_info[0] + '.csv'
+    # last_node_path = dir_path + '/' + chain_info[-1] + '.csv'
+    first_node_path = os.path.join(dir_path, chain_info[0] + '.csv')
+    last_node_path = os.path.join(dir_path, chain_info[-1] + '.csv')
+
     E2E_response_time, _, _ = aa.get_E2E_response_time(first_node_path, last_node_path, start_instance, end_instance, type='shortest')
     print(E2E_response_time)    
     node_response_time_list = []
     for node in chain_info:        
-        node_path = dir_path + '/' + node + '.csv'
+        # node_path = dir_path + '/' + node + '.csv'
+        node_path = os.path.join(dir_path, node + '.csv')
         node_response_time, _, _ = aa.get_E2E_response_time(node_path, node_path, start_instance, end_instance, type='shortest')
         node_response_time_list.append(node_response_time)
     miss_alignment_delay = copy.deepcopy(E2E_response_time)
@@ -469,8 +505,11 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
         miss_alignment_delay = aa.subsctract_dicts(miss_alignment_delay, node_response_time)    
     
     # Plot graph
-    output_dir_path = 'analyzation/' + output_title + '/' + 'miss_alignment_delay'
+    # output_dir_path = 'analyzation/' + output_title + '/' + 'miss_alignment_delay'
+    output_dir_path = os.path.join('analyzation', output_title, 'miss_alignment_delay')
     if not os.path.exists(output_dir_path): os.system('mkdir -p ' + output_dir_path)
+
+    print('miss alignment delay: ', miss_alignment_delay)
 
     x_miss_alignment_delay_data = list(miss_alignment_delay.keys()) # Instance IDs
     y_miss_alignment_delay_data = list(miss_alignment_delay.values()) # E2E response time(ms)
@@ -491,7 +530,8 @@ def profile_miss_alignment_delay(dir_path, output_title, chain_info, start_insta
     
     plt.plot(x_E2E_data, y_E2E_data, color = color, label = 'E2E')
 
-    plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_' + 'miss_alignment_delay_plot.png'
+    # plot_path = output_dir_path+'/' + exp_title + '_' + exp_id + '_' + 'miss_alignment_delay_plot.png'
+    plot_path = os.path.join(output_dir_path, exp_title + '_' + exp_id + '_' + 'miss_alignment_delay_plot.png')
            
     plt.legend()
     plt.ylim(0, 1000)
@@ -553,20 +593,23 @@ if __name__ == '__main__':
             response_time_path = source_path + '/' + str(idx) + '/response_time'            
             profile_response_time(response_time_path, output_title, first_node, last_node, avoidance_start_instance, avoidance_end_instance, is_collapsed, is_matching_failed)
 
-            # Miss alignment delay for whole driving
-            max_miss_alignment_delay, avg_miss_alignment_delay = profile_miss_alignment_delay(response_time_path, output_title, chain_info, start_instance, end_instance, is_collapsed)
-            max_miss_alignment_delay_list.append(max_miss_alignment_delay)
-            avg_miss_alignment_delay_list.append(avg_miss_alignment_delay)
+            # # Miss alignment delay for whole driving
+            # max_miss_alignment_delay, avg_miss_alignment_delay = profile_miss_alignment_delay(response_time_path, output_title, chain_info, start_instance, end_instance, is_collapsed)
+            # max_miss_alignment_delay_list.append(max_miss_alignment_delay)
+            # avg_miss_alignment_delay_list.append(avg_miss_alignment_delay)
 
             # Trajectories
             dir_path = source_path + '/' + str(idx)
             profile_waypoints(dir_path, output_title, is_collapsed_list[idx], is_matching_failed)            
+
+            # Speed
+            profile_speeds(dir_path, output_title, is_collapsed_list[idx], is_matching_failed, target_speed[idx])
         
         # Profile information from whole experiment
         is_collapsed_list = aa.convert_boolean_list_to_int_list(is_collapsed_list)        
         is_matching_failed = aa.convert_boolean_list_to_int_list(is_matching_failed_list) 
         avg_center_offset = profile_avg_center_offset_for_experiment(source_path, is_matching_failed_list)
-        profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list)
+        # profile_analyzation_info(source_path, output_title, avg_center_offset, is_collapsed_list, is_matching_failed_list, max_miss_alignment_delay_list, avg_miss_alignment_delay_list)
         # Profile avoidnace response time
         profile_response_time_for_experiment(source_path, output_title, first_node, last_node, is_collapsed_list, is_matching_failed, x_range=avoidance_x_range, deadline=deadline)
         # Profile wayupoints

@@ -66,6 +66,7 @@ def get_instance_pair(center_offset_path, start_x, end_x, simulator):
             instance = float(line[column_idx['instance']])
             if simulator == 'old': x = float(line[column_idx['x']])
             elif simulator == 'carla' or simulator == 'svl': x = float(line[column_idx['gnss_pose_x']])
+            elif simulator == 'fmtc': x = float(line[column_idx['current_pose_x']])
             else:
                 print('# Wrong simulator!')
                 exit()
@@ -97,9 +98,10 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
     with open(last_node_path) as f_last:
         reader = csv.reader(f_last)        
         for i, row in enumerate(reader):            
-            if i == 0: 
+            if i == 0 : 
                 column_idx = get_column_idx_from_csv(row)
                 continue
+            if len(row) <= 1: continue
             end_time = float(row[column_idx['end']])
             instance_id = int(row[column_idx['instance']])
             if type == 'shortest':
@@ -113,7 +115,7 @@ def get_E2E_response_time(first_node_path, last_node_path, E2E_start_instance, E
             if i == 0: 
                 column_idx = get_column_idx_from_csv(row)
                 continue       
-
+            if len(row) <= 1: continue
             start_time = float(row[column_idx['start']])
             instance_id = int(row[column_idx['instance']])
             if instance_id < start_instance: continue
@@ -174,7 +176,6 @@ def get_center_offset(center_offset_path):
 
     max_center_offset = get_dict_max(center_offset)
     avg_center_offset = get_dict_avg(center_offset)
-
     return center_offset, max_center_offset, avg_center_offset
 
 def get_waypoints(center_offset_path, simulator):
@@ -192,6 +193,9 @@ def get_waypoints(center_offset_path, simulator):
             elif simulator == 'carla' or simulator == 'svl':
                 pose_x = float(line[column_idx['gnss_pose_x']])
                 pose_y = float(line[column_idx['gnss_pose_y']])
+            elif simulator == 'fmtc':
+                pose_x = float(line[column_idx['current_pose_x']])
+                pose_y = float(line[column_idx['current_pose_y']])
             else:
                 print('# Wrong simulator!')
                 exit()
@@ -199,8 +203,8 @@ def get_waypoints(center_offset_path, simulator):
     
     return waypoints
 
-def get_speed(center_offset_path, simulator, scale):
-    speed = []
+def get_speed(center_offset_path, simulator, scale='kmh'):
+    speeds = {}
     column_idx = {}
     with open(center_offset_path) as f:
         reader = csv.reader(f)
@@ -208,17 +212,20 @@ def get_speed(center_offset_path, simulator, scale):
             if i == 0: 
                 column_idx = get_column_idx_from_csv(line)
                 continue
+            ts = float(line[column_idx['ts']])
             if simulator == 'old':
                 speed = float(line[column_idx['x']])
-            elif simulator == 'carla' or simulator == 'svl':
+            elif simulator == 'carla' or simulator == 'svl' or simulator == 'fmtc':
                 speed = float(line[column_idx['current_speed']])
             else:
                 print('# Wrong simulator!')
                 exit()
-            if scale == 'kms':
-                waypoints.append(speed)
+            if scale == 'kmh':
+                # speeds.append(speed)
+                speeds[ts] = speed
             if scale == 'ms':
-                waypoints.append(speed/3.6)
+                # speeds.append(speed/3.6)
+                speeds[ts] = speed/3.6
     
     return speeds
 
@@ -275,7 +282,7 @@ def check_matching_is_failed(center_offset_path, start_instance, end_instance, s
                 if instance < start_instance: continue
                 if ndt_score > 1.5: return True
                 if instance > end_instance: break
-    elif simulator == 'carla' or simulator == 'svl':
+    elif simulator == 'carla' or simulator == 'svl' or simulator == 'fmtc':
         column_idx = {}
         pose_diff_threshold = 5
         ndt_score_threshold = 1.5

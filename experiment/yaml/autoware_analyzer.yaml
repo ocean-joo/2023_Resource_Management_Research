@@ -1,4 +1,4 @@
-simulator: 'svl' # carla, svl or old(before 230204)
+simulator: 'fmtc' # carla, svl or old(before 230204)
 
 # avoidance_x_range: [-34.0, 25.0]
 avoidance_x_range: [-99999, 99999]
@@ -7,9 +7,9 @@ avoidance_x_range: [-99999, 99999]
 # node_chain: ['lidar_republisher', 'voxel_grid_filter', 'ndt_matching', 'pure_pursuit', 'twist_filter', 'twist_gate']
 
 
-experiment_title: ['230227_Carla_test']
-output_title:     ['230227_Carla_test']
-target_speed:     [5]
+experiment_title: ['230418_opt_v07']
+output_title:     ['230418_opt_v07']
+target_speed:     [7]
 first_node:       ['lidar_republisher']
 last_node:        ['twist_gate']
 E2E_deadline:     [400.0]
