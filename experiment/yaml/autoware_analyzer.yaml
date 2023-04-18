@@ -8,12 +8,12 @@ avoidance_x_range: [-99999, 99999]
 
 # experiment_title: ['230404_default_v05']
 
-# for comparison vis
-# experiment_title: [['230407_default_v05', '230407_opt_v05']]
-# output_title:     ['230407_v05']
-# target_speed:     [5]
+# # for comparison vis
+experiment_title: [['230418_default_v05_02', '230418_opt_v05']]
+output_title:     ['230418_v05']
+target_speed:     [5]
 
-# for single vis
+# #for single vis
 # experiment_title: ['230407_v05']
 # output_title:     ['230407_v05']
 # target_speed:     [5]
