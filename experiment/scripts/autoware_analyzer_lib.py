@@ -162,6 +162,19 @@ def start_rosbag_record(topic_names):
     return
 '''
 
+def get_instances(center_offset_path):
+    column_idx = {}
+    instances = []
+    with open(center_offset_path) as f:
+        reader = csv.reader(f)
+        for i, line in enumerate(reader):
+            if i == 0: 
+                column_idx = get_column_idx_from_csv(line)
+                continue
+            instance = float(line[column_idx['instance']])
+            instances.append(instance)
+    return instances
+
 def get_center_offset(center_offset_path):
     column_idx = {}
     center_offset = {}
@@ -171,8 +184,9 @@ def get_center_offset(center_offset_path):
             if i == 0: 
                 column_idx = get_column_idx_from_csv(line)
                 continue
-            instance = float(line[column_idx['instance']])
-            center_offset[instance] = abs(float(line[column_idx['center_offset']]))
+            ts = float(line[column_idx['ts']])
+            center_offset[ts] = float(line[column_idx['center_offset']])
+            # center_offset[instance] = abs(float(line[column_idx['center_offset']]))
 
     max_center_offset = get_dict_max(center_offset)
     avg_center_offset = get_dict_avg(center_offset)
